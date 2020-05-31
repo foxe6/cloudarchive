@@ -1,4 +1,4 @@
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 __keywords__ = ["internet archive cloud storage"]
 
 
@@ -10,4 +10,4 @@ __keywords__ = ["internet archive cloud storage"]
 #     os._exit(1)
 
 
-from .broker import *
+from .agent import *

@@ -13,6 +13,7 @@ class IA_Broker(object):
         self.identifier = identifier
 
     def upload(self, root:str, path: str, filename: str):
+        remote_filename = filename.replace(".", "_,_")
         headers = {
             "authorization": f"LOW {self.access}:{self.secret}",
             "Cache-Control": "no-cache",
@@ -27,11 +28,11 @@ class IA_Broker(object):
             "x-amz-auto-make-bucket": "1",
             "x-archive-interactive-priority": "1",
             "x-archive-size-hint": "2",
-            "X-File-Name": f"uri({filename})",
+            "X-File-Name": f"uri({remote_filename})",
             "X-Requested-With": "XMLHttpRequest"
         }
         url = f"https://s3.us.archive.org/"
-        url_path = self.identifier+"/"+path.replace("\\", "/")+"/"+filename
+        url_path = self.identifier+"/"+path.replace("\\", "/")+"/"+remote_filename
         uri = url+urllib.parse.quote(url_path, safe="")
         file = join_path(root, path, filename)
         p(f"[Uploading] {file} => {uri}", end="")
