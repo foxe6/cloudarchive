@@ -33,6 +33,7 @@ class IA_Broker(object):
         }
         url = f"https://s3.us.archive.org/"
         url_path = self.identifier+"/"+path.replace("\\", "/")+"/"+remote_filename
+        url_path = url_path.replace("//", "/")
         uri = url+urllib.parse.quote(url_path, safe="")
         file = join_path(root, path, filename)
         p(f"[Uploading] {file} => {uri}", end="")
