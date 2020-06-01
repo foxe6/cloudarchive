@@ -42,7 +42,6 @@ class IA_Agent(object):
                     f"https://archive.org/download/{identifier}/"+file["name"],
                     piece_size=piece_size, connections=connections, cal_hash=cal_hash
                 )
-                p(cal_hash, hashes["sha1"], file["sha1"])
                 if not cal_hash or hashes["sha1"] == file["sha1"]:
                     if cal_hash:
                         p(f"[Verified] {url} => " + hashes["file_path"])
