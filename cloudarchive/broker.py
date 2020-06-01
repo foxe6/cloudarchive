@@ -43,16 +43,19 @@ class IA_Broker(object):
         return r
 
     def download(self, save_dir: str, url: str,
-                 piece_size: int = 1024*1024*(2**4), connections: int = 2**3) -> None:
+                 piece_size: int = 1024*1024*(2**4), connections: int = 2**3,
+                 cal_hash: bool = False) -> dict:
         try:
             os.makedirs(save_dir)
         except:
             pass
         p(f"[Downloading] {url} => {save_dir}")
         _mfd = mfd.MFD(save_dir, piece_size=piece_size)
-        _f = _mfd.download(url, connections=connections)
+        _f = _mfd.download(url, connections=connections, cal_hash=cal_hash)
         _mfd.stop()
-        _fr = _f["file_path"].replace("_,_", ".").replace("_%2C_", ".")
-        shutil.move(_f["file_path"], _fr)
-        p(f"[Downloaded] {url} => {_fr}")
+        _ffp = _f["file_path"]
+        _f["file_path"] = _f["file_path"].replace("_,_", ".").replace("_%2C_", ".")
+        shutil.move(_ffp, _f["file_path"])
+        p(f"[Downloaded] {url} => "+_f["file_path"])
+        return _f
 

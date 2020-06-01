@@ -22,17 +22,28 @@ class IA_Agent(object):
             IA_Broker(self.access, self.secret, self.identifier).upload(root, path, file)
 
     def download(self, save_dir: str, url: str,
-                 piece_size: int = 1024*1024*(2**4), connections: int = 2**3) -> None:
+                 piece_size: int = 1024*1024*(2**4), connections: int = 2**3,
+                 cal_hash: bool = False) -> None:
         url = url.replace("https://archive.org/download/", "")
         identifier = url.split("/")[0]
-        path = url.replace(identifier, "")[1:]
+        path = "/".join(url.split("/")[1:])
         if requests.get(f"https://archive.org/download/{url}/").status_code != 404:
             if path != "":
                 path = (path+"/").replace("//", "/")
         metadata = f"https://archive.org/metadata/{identifier}"
         metadata = requests.get(metadata).json()
         files = metadata["files"]
-        files = [file for file in files if file["name"].find(path) == 0 and
+        files = [file for file in files if file["name"].startswith(path) and
                  re.search(r"(_(files|meta)\.xml|_(archive\.torrent|meta\.sqlite))$", file["name"]) is None]
-        p(files)
+        for file in files:
+            while True:
+                hashes = IA_Broker().download(
+                    join_path(save_dir, identifier),
+                    f"https://archive.org/download/{identifier}/"+file["name"],
+                    piece_size=piece_size, connections=connections, cal_hash=cal_hash
+                )
+                if not cal_hash or hashes["sha1"] == file["sha1"]:
+                    if cal_hash:
+                        p(f"[Verified] {url} => " + hashes["file_path"])
+                    break
 
