@@ -55,7 +55,8 @@ class IA_Broker(object):
         _mfd.stop()
         _ffp = _f["file_path"]
         _f["file_path"] = _f["file_path"].replace("_,_", ".").replace("_%2C_", ".")
-        shutil.move(_ffp, _f["file_path"])
+        if _ffp != _f["file_path"]:
+            shutil.move(_ffp, _f["file_path"])
         p(f"[Downloaded] {url} => "+_f["file_path"])
         return _f
 
