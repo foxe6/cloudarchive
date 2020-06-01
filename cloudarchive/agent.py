@@ -19,4 +19,6 @@ class IA_Agent(object):
             path = os.path.sep.join(paths[:-1])
             IA_Broker(self.access, self.secret, self.identifier).upload(root, path, file)
 
+    def download(self) -> None:
+        ...
 

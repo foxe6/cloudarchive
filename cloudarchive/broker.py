@@ -4,6 +4,7 @@ from filehandling import join_path
 from omnitools import p
 import mfd
 import os
+import shutil
 
 
 class IA_Broker(object):
@@ -12,7 +13,7 @@ class IA_Broker(object):
         self.secret = secret
         self.identifier = identifier
 
-    def upload(self, root:str, path: str, filename: str):
+    def upload(self, root: str, path: str, filename: str):
         remote_filename = filename.replace(".", "_,_")
         headers = {
             "authorization": f"LOW {self.access}:{self.secret}",
@@ -43,6 +44,13 @@ class IA_Broker(object):
 
     def download(self, save_dir: str, url: str,
                  piece_size: int = 1024*1024*(2**4), connections: int = 2**3) -> None:
-        os.makedirs(save_dir)
-        mfd.MFD(save_dir, piece_size=piece_size).download(url, connections=connections)
+        try:
+            os.makedirs(save_dir)
+        except:
+            pass
+        p(f"[Downloading] {url} => {save_dir}")
+        _f = mfd.MFD(save_dir, piece_size=piece_size).download(url, connections=connections)
+        _fr = _f["file_path"].replace("_,_", ".")
+        shutil.move(_f["file_path"], _fr)
+        p(f"[Downloaded] {url} => {_fr}")
 
