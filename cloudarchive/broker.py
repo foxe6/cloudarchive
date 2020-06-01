@@ -49,8 +49,10 @@ class IA_Broker(object):
         except:
             pass
         p(f"[Downloading] {url} => {save_dir}")
-        _f = mfd.MFD(save_dir, piece_size=piece_size).download(url, connections=connections)
-        _fr = _f["file_path"].replace("_,_", ".")
+        _mfd = mfd.MFD(save_dir, piece_size=piece_size)
+        _f = _mfd.download(url, connections=connections)
+        _mfd.stop()
+        _fr = _f["file_path"].replace("_,_", ".").replace("_%2C_", ".")
         shutil.move(_f["file_path"], _fr)
         p(f"[Downloaded] {url} => {_fr}")
 
