@@ -1,6 +1,8 @@
 from .broker import *
 import requests
 import re
+import text2png
+import os
 
 
 class IA_Agent(object):
@@ -54,11 +56,52 @@ class IA_Agent(object):
                         p(f"[Verified]", hashes["file_path"], hashes["sha1"])
                     break
 
-    def check_identifier_available(self, identifier):
+    def check_identifier_available(self, identifier: str):
         r_identifier = requests.post("https://archive.org/upload/app/upload_api.php", {
             "name": "identifierAvailable",
             "identifier": identifier,
             "findUnique": True
         }).json()["identifier"]
         return True if identifier == r_identifier else False
+
+    def new_identifier(self, identifier: str):
+        if not self.check_identifier_available(identifier):
+            raise Exception(f"identifier {identifier} already exists")
+        file_path = text2png.TextToPng("C:\\Windows\\Fonts\\msgothic.ttc", 64).create(identifier)
+        remote_filename = os.path.basename(file_path)
+        headers = {
+            "authorization": f"LOW {self.access}:{self.secret}",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Content-Type": "multipart/form-data; charset=UTF-8",
+            "Origin": "https://archive.org",
+            "Referer": f"https://archive.org/upload/",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-site",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36",
+            "x-amz-acl": "bucket-owner-full-control",
+            "x-amz-auto-make-bucket": "1",
+            "x-archive-interactive-priority": "1",
+            "x-archive-meta-mediatype": "uri(data)",
+            "x-archive-meta01-collection": "uri(opensource_media)",
+            "x-archive-meta01-description": f"uri({identifier})",
+            "x-archive-meta01-noindex": "uri(true)",
+            "x-archive-meta01-private": "uri(true)",
+            "x-archive-meta01-scanner": "uri(Internet%20Archive%20HTML5%20Uploader%201.6.40)",
+            "x-archive-meta01-subject": f"uri({identifier})",
+            "x-archive-meta01-title": f"uri({identifier})",
+            "x-archive-size-hint": "2000",
+            "X-File-Name": f"uri({remote_filename})",
+            "X-Requested-With": "XMLHttpRequest"
+        }
+        url = f"https://s3.us.archive.org/"
+        url_path = self.identifier+"/"+remote_filename
+        url_path = url_path.replace("//", "/")
+        uri = url+urllib.parse.quote(url_path, safe="")
+        p(f"[Identifier] Creating {identifier}", end="")
+        r = requests.put(uri, data=open(file_path, "rb"), headers=headers)
+        p(f"\r[Identifier] Created {identifier} => https://archive.org/download/{identifier}")
+        return r
+
 
