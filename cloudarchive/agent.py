@@ -96,7 +96,7 @@ class IA_Agent(object):
             "X-Requested-With": "XMLHttpRequest"
         }
         url = f"https://s3.us.archive.org/"
-        url_path = self.identifier+"/"+remote_filename
+        url_path = identifier+"/"+remote_filename
         url_path = url_path.replace("//", "/")
         uri = url+urllib.parse.quote(url_path, safe="")
         p(f"[Identifier] Creating {identifier}", end="")
