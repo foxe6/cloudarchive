@@ -113,7 +113,7 @@ class IA_Agent(object):
         p(f"\r[Identifier] Created {self.identifier} => https://archive.org/download/{self.identifier}")
         return r
 
-    def rename(self, credentials: tuple, old_item: str, new_item: str):
+    def rename(self, credentials: tuple, identifier: str, old_item: str, new_item: str):
         self.s = requests.Session()
         self.s.post("https://archive.org/account/login", {
             "username": credentials[0],
@@ -123,6 +123,7 @@ class IA_Agent(object):
             "login": "true",
             "submit_by_js": "true"
         })
+        self.s.get("https://archive.org/edit.php?edit-files=1&identifier="+identifier)
         IA_Broker().rename(self.s, "", "")
 
 
