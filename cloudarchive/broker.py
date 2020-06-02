@@ -64,8 +64,8 @@ class IA_Broker(object):
         p(f"[Renaming] <{identifier}> {old_item} => {new_item}", end="")
         r = session.post("https://archive.org/edit.php", data={
             "cmd": "rename",
-            "oldname": old_item,
-            "newname": new_item
+            "oldname": "root/"+old_item,
+            "newname": "root/"+new_item
         }, cookies={
             "http-editor-v3": identifier
         })
