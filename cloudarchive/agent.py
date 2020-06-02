@@ -54,3 +54,10 @@ class IA_Agent(object):
                         p(f"[Verified]", hashes["file_path"], hashes["sha1"])
                     break
 
+    def check_identifier_available(self, identifier):
+        return requests.post("https://archive.org/upload/app/upload_api.php",{
+            "name": "identifierAvailable",
+            "identifier": identifier,
+            "findUnique": True
+        }).json()["success"]
+
