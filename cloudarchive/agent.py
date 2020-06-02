@@ -27,13 +27,20 @@ class IA_Agent(object):
         url = url.replace("https://archive.org/download/", "")
         identifier = url.split("/")[0]
         path = "/".join(url.split("/")[1:])
+        is_file = False
         if requests.get(f"https://archive.org/download/{url}/").status_code != 404:
             if path != "":
                 path = (path+"/").replace("//", "/")
+        else:
+            is_file = True
         metadata = f"https://archive.org/metadata/{identifier}"
         metadata = requests.get(metadata).json()
         files = metadata["files"]
-        files = [file for file in files if file["name"].startswith(path) and
+        files = [file for file in files if
+                 (
+                     (file["name"] == path and is_file) or
+                     (file["name"].startswith(path) and not is_file)
+                 ) and
                  re.search(r"(_(files|meta)\.xml|_(archive\.torrent|meta\.sqlite))$", file["name"]) is None]
         for file in files:
             while True:
