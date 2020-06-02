@@ -64,11 +64,11 @@ class IA_Broker(object):
         p(f"[Renaming] <{identifier}> {old_item} => {new_item}", end="")
         r = session.post("https://archive.org/edit.php", data={
             "cmd": "rename",
-            "oldname": "root/foo3.txt4",
-            "newname": "root/foo3.txt"
+            "oldname": old_item,
+            "newname": new_item
         }, cookies={
             "http-editor-v3": identifier
         })
-        p(f"[Renamed] <{identifier}> {old_item} => {new_item}", end="")
+        p(f"\r[Renamed] <{identifier}> {old_item} => {new_item}")
         return r
 
