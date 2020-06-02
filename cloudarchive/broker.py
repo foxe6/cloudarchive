@@ -60,3 +60,10 @@ class IA_Broker(object):
         p(f"\r[Downloaded] {url} => "+_f["file_path"])
         return _f
 
+    def rename(self, session: requests.Session, old_item: str, new_item: str):
+        session.post("https://archive.org/edit.php", {
+            "cmd": "rename",
+            "oldname": "root/foo3.txt4",
+            "newname": "root/foo3.txt"
+        })
+

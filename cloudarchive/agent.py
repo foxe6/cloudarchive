@@ -113,4 +113,16 @@ class IA_Agent(object):
         p(f"\r[Identifier] Created {self.identifier} => https://archive.org/download/{self.identifier}")
         return r
 
+    def rename(self, credentials: tuple, old_item: str, new_item: str):
+        self.s = requests.Session()
+        self.s.post("https://archive.org/account/login", {
+            "username": credentials[0],
+            "password": credentials[1],
+            "remember": "undefined",
+            "referer": "https://archive.org",
+            "login": "true",
+            "submit_by_js": "true"
+        })
+        IA_Broker().rename(self.s, "", "")
+
 
