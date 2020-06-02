@@ -33,21 +33,7 @@ class IA_Agent(object):
         if not self.check_identifier_created(identifier):
             raise Exception(f"identifier {identifier} does not exist")
         path = "/".join(url.split("/")[1:])
-        is_file = False
-        if requests.get(f"https://archive.org/download/{url}/").status_code != 404:
-            if path != "":
-                path = (path+"/").replace("//", "/")
-        else:
-            is_file = True
-        metadata = f"https://archive.org/metadata/{identifier}"
-        metadata = requests.get(metadata).json()
-        files = metadata["files"]
-        files = [file for file in files if
-                 (
-                     (file["name"] == path and is_file) or
-                     (file["name"].startswith(path) and not is_file)
-                 ) and
-                 re.search(r"(_(files|meta)\.xml|_(archive\.torrent|meta\.sqlite))$", file["name"]) is None]
+        files = self.find_matching_files(self.get_identifier_metadata(identifier), path)
         for file in files:
             while True:
                 hashes = IA_Broker().download(
@@ -59,6 +45,28 @@ class IA_Agent(object):
                     if cal_hash:
                         p(f"[Verified]", hashes["file_path"], hashes["sha1"])
                     break
+
+    def get_identifier_metadata(self, identifier: str) -> list:
+        metadata = f"https://archive.org/metadata/{identifier}"
+        metadata = requests.get(metadata).json()
+        return metadata["files"]
+
+    def find_matching_files(self, files: list, path: str):
+        is_file = False
+        if len([file for file in files if file["name"] == path]) == 1:
+            is_file = True
+        else:
+            if path != "":
+                path = (path+"/").replace("//", "/")
+        files = [
+            file for file in files if
+            (
+                (file["name"] == path and is_file) or
+                (file["name"].startswith(path) and not is_file)
+            ) and
+            re.search(r"(_(files|meta)\.xml|_(archive\.torrent|meta\.sqlite))$", file["name"]) is None
+        ]
+        return files
 
     def check_identifier_available(self, identifier: str):
         r_identifier = requests.post("https://archive.org/upload/app/upload_api.php", {
@@ -114,17 +122,31 @@ class IA_Agent(object):
         return r
 
     def rename(self, credentials: tuple, identifier: str, old_item: str, new_item: str):
+        if old_item == "" or new_item == "":
+            raise Exception("rename name cannot be empty")
         self.s = requests.Session()
-        self.s.get("https://archive.org/account/login")
-        self.s.post("https://archive.org/account/login", {
-            "username": credentials[0],
-            "password": credentials[1],
-            "remember": "undefined",
-            "referer": "https://archive.org",
-            "login": "true",
-            "submit_by_js": "true"
-        })
-        # self.s.get("https://archive.org/edit.php?edit-files=1&identifier="+identifier)
-        IA_Broker().rename(self.s, identifier, "", "")
+        # self.s.get("https://archive.org/account/login")
+        # self.s.post("https://archive.org/account/login", {
+        #     "username": credentials[0],
+        #     "password": credentials[1],
+        #     "remember": "undefined",
+        #     "referer": "https://archive.org",
+        #     "login": "true",
+        #     "submit_by_js": "true"
+        # })
+        files = self.get_identifier_metadata(identifier)
+        old_files = self.find_matching_files(files, old_item)
+        for i, old_file in enumerate(old_files):
+            new_file = old_file["name"].replace(old_item, new_item, 1)
+            collision = self.find_matching_files(files, new_file)
+            if len(collision) == 1:
+                raise Exception(
+                    f"cannot rename {old_item} to {new_item}\n"+
+                    f"because {new_item} already exists or\n"+
+                    f"a file from {old_item} already exists in {new_item}"
+                )
+        for old_file in old_files:
+            new_file = old_file["name"].replace(old_item, new_item, 1)
+            IA_Broker().rename(self.s, identifier, old_file["name"], new_file)
 
 

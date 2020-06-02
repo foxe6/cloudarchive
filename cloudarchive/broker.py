@@ -61,11 +61,14 @@ class IA_Broker(object):
         return _f
 
     def rename(self, session: requests.Session, identifier: str, old_item: str, new_item: str):
-        session.post("https://archive.org/edit.php", data={
+        p(f"[Renaming] <{identifier}> {old_item} => {new_item}", end="")
+        r = session.post("https://archive.org/edit.php", data={
             "cmd": "rename",
             "oldname": "root/foo3.txt4",
             "newname": "root/foo3.txt"
         }, cookies={
             "http-editor-v3": identifier
         })
+        p(f"[Renamed] <{identifier}> {old_item} => {new_item}", end="")
+        return r
 
