@@ -64,11 +64,16 @@ class IA_Agent(object):
         }).json()["identifier"]
         return True if identifier == r_identifier else False
 
+    def check_identifier_created(self, identifier: str):
+        r = requests.get("https://archive.org/details/"+identifier)
+        return True if r.status_code == 200 else False
+
     def new_identifier(self, identifier: str):
         if not self.check_identifier_available(identifier):
             raise Exception(f"identifier {identifier} already exists")
-        file_path = text2png.TextToPng("C:\\Windows\\Fonts\\msgothic.ttc", 64).create(identifier)
-        remote_filename = os.path.basename(file_path)
+        p(f"[Identifier] Creating {identifier}", end="")
+        thumbnail_path = text2png.TextToPng("C:\\Windows\\Fonts\\msgothic.ttc", 64).create(identifier)
+        remote_filename = os.path.basename(thumbnail_path)
         headers = {
             "authorization": f"LOW {self.access}:{self.secret}",
             "Cache-Control": "no-cache",
@@ -88,7 +93,7 @@ class IA_Agent(object):
             "x-archive-meta01-description": f"uri({identifier})",
             "x-archive-meta01-noindex": "uri(true)",
             "x-archive-meta01-private": "uri(true)",
-            "x-archive-meta01-scanner": "uri(Internet%20Archive%20HTML5%20Uploader%201.6.40)",
+            "x-archive-meta01-scanner": "uri(Internet%20Archive%20HTML5%20Uploader%201.6.4)",
             "x-archive-meta01-subject": f"uri({identifier})",
             "x-archive-meta01-title": f"uri({identifier})",
             "x-archive-size-hint": "2000",
@@ -99,8 +104,7 @@ class IA_Agent(object):
         url_path = identifier+"/"+remote_filename
         url_path = url_path.replace("//", "/")
         uri = url+urllib.parse.quote(url_path, safe="")
-        p(f"[Identifier] Creating {identifier}", end="")
-        r = requests.put(uri, data=open(file_path, "rb"), headers=headers)
+        r = requests.put(uri, data=open(thumbnail_path, "rb"), headers=headers)
         p(f"\r[Identifier] Created {identifier} => https://archive.org/download/{identifier}")
         return r
 
