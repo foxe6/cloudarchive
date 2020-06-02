@@ -149,4 +149,14 @@ class IA_Agent(object):
             new_file = old_file["name"].replace(old_item, new_item, 1)
             IA_Broker().rename(self.s, identifier, old_file["name"], new_file)
 
+    def delete(self, identifier: str, item: str):
+        files = self.find_matching_files(self.get_identifier_metadata(identifier), item)
+        headers = {
+            "authorization": f"LOW {self.access}:{self.secret}",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36",
+            "x-archive-cascade-delete": "1"
+        }
+        for file in files:
+            item = file["name"]
+            requests.delete(f"https://s3.us.archive.org/{identifier}/{item}", headers=headers)
 
