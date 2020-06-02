@@ -73,10 +73,11 @@ class IA_Agent(object):
         return True if r.status_code == 200 else False
 
     def new_identifier(self, identifier: str):
-        if not self.check_identifier_available(identifier):
-            raise Exception(f"identifier {identifier} already exists")
-        p(f"[Identifier] Creating {identifier}", end="")
-        thumbnail_path = text2png.TextToPng("C:\\Windows\\Fonts\\msgothic.ttc", 64).create(identifier)
+        self.identifier = identifier
+        if not self.check_identifier_available(self.identifier):
+            raise Exception(f"identifier {self.identifier} already exists")
+        p(f"[Identifier] Creating {self.identifier}", end="")
+        thumbnail_path = text2png.TextToPng("C:\\Windows\\Fonts\\msgothic.ttc", 64).create(self.identifier)
         remote_filename = os.path.basename(thumbnail_path)
         headers = {
             "authorization": f"LOW {self.access}:{self.secret}",
@@ -94,22 +95,22 @@ class IA_Agent(object):
             "x-archive-interactive-priority": "1",
             "x-archive-meta-mediatype": "uri(data)",
             "x-archive-meta01-collection": "uri(opensource_media)",
-            "x-archive-meta01-description": f"uri({identifier})",
+            "x-archive-meta01-description": f"uri({self.identifier})",
             "x-archive-meta01-noindex": "uri(true)",
             "x-archive-meta01-private": "uri(true)",
             "x-archive-meta01-scanner": "uri(Internet%20Archive%20HTML5%20Uploader%201.6.4)",
-            "x-archive-meta01-subject": f"uri({identifier})",
-            "x-archive-meta01-title": f"uri({identifier})",
+            "x-archive-meta01-subject": f"uri({self.identifier})",
+            "x-archive-meta01-title": f"uri({self.identifier})",
             "x-archive-size-hint": "2000",
             "X-File-Name": f"uri({remote_filename})",
             "X-Requested-With": "XMLHttpRequest"
         }
         url = f"https://s3.us.archive.org/"
-        url_path = identifier+"/"+remote_filename
+        url_path = self.identifier+"/"+remote_filename
         url_path = url_path.replace("//", "/")
         uri = url+urllib.parse.quote(url_path, safe="")
         r = requests.put(uri, data=open(thumbnail_path, "rb"), headers=headers)
-        p(f"\r[Identifier] Created {identifier} => https://archive.org/download/{identifier}")
+        p(f"\r[Identifier] Created {self.identifier} => https://archive.org/download/{self.identifier}")
         return r
 
 
