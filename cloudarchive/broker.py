@@ -51,7 +51,7 @@ class IA_Broker(object):
             pass
         p(f"[Downloading] {url} => {save_dir}")
         _mfd = mfd.MFD(save_dir, piece_size=piece_size)
-        _f = _mfd.download(url, connections=connections, cal_hash=cal_hash)
+        _f = _mfd.download(url, connections=connections, cal_hash=cal_hash, quiet=True)
         _mfd.stop()
         _ffp = _f["file_path"]
         _f["file_path"] = _f["file_path"].replace("_,_", ".").replace("_%2C_", ".")
