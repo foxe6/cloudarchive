@@ -125,15 +125,15 @@ class IA_Agent(object):
         if old_item == "" or new_item == "":
             raise Exception("rename name cannot be empty")
         self.s = requests.Session()
-        # self.s.get("https://archive.org/account/login")
-        # self.s.post("https://archive.org/account/login", {
-        #     "username": credentials[0],
-        #     "password": credentials[1],
-        #     "remember": "undefined",
-        #     "referer": "https://archive.org",
-        #     "login": "true",
-        #     "submit_by_js": "true"
-        # })
+        self.s.get("https://archive.org/account/login")
+        self.s.post("https://archive.org/account/login", {
+            "username": credentials[0],
+            "password": credentials[1],
+            "remember": "undefined",
+            "referer": "https://archive.org",
+            "login": "true",
+            "submit_by_js": "true"
+        })
         files = self.get_identifier_metadata(identifier)
         old_files = self.find_matching_files(files, old_item)
         for i, old_file in enumerate(old_files):
