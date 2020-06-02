@@ -12,6 +12,8 @@ class IA_Agent(object):
         self.identifier = identifier
 
     def upload(self, root: str, item: str) -> None:
+        if not self.check_identifier_created(self.identifier):
+            raise Exception(f"identifier {self.identifier} does not exist")
         if os.path.isdir(join_path(root, item)):
             for _, sub_dir, files in os.walk(os.path.join(root, item)):
                 for file in files:
@@ -28,6 +30,8 @@ class IA_Agent(object):
                  cal_hash: bool = False) -> None:
         url = url.replace("https://archive.org/download/", "")
         identifier = url.split("/")[0]
+        if not self.check_identifier_created(identifier):
+            raise Exception(f"identifier {identifier} does not exist")
         path = "/".join(url.split("/")[1:])
         is_file = False
         if requests.get(f"https://archive.org/download/{url}/").status_code != 404:
