@@ -49,7 +49,7 @@ class IA_Broker(object):
             os.makedirs(save_dir)
         except:
             pass
-        p(f"[Downloading] {url} => {save_dir}")
+        p(f"[Downloading] {url} => {save_dir}", end="")
         _mfd = mfd.MFD(save_dir, piece_size=piece_size)
         _f = _mfd.download(url, connections=connections, cal_hash=cal_hash, quiet=True)
         _mfd.stop()
@@ -57,6 +57,6 @@ class IA_Broker(object):
         _f["file_path"] = _f["file_path"].replace("_,_", ".").replace("_%2C_", ".")
         if _ffp != _f["file_path"]:
             shutil.move(_ffp, _f["file_path"])
-        p(f"[Downloaded] {url} => "+_f["file_path"])
+        p(f"\r[Downloaded] {url} => "+_f["file_path"])
         return _f
 

@@ -44,6 +44,6 @@ class IA_Agent(object):
                 )
                 if not cal_hash or hashes["sha1"] == file["sha1"]:
                     if cal_hash:
-                        p(f"[Verified] "+hashes["file_path"])
+                        p(f"[Verified]", hashes["file_path"], hashes["sha1"])
                     break
 
