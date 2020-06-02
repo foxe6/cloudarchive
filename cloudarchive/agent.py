@@ -55,9 +55,10 @@ class IA_Agent(object):
                     break
 
     def check_identifier_available(self, identifier):
-        return requests.post("https://archive.org/upload/app/upload_api.php",{
+        r_identifier = requests.post("https://archive.org/upload/app/upload_api.php", {
             "name": "identifierAvailable",
             "identifier": identifier,
             "findUnique": True
-        }).json()["success"]
+        }).json()["identifier"]
+        return True if identifier == r_identifier else False
 
