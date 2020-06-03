@@ -156,7 +156,7 @@ class IA_Agent(object):
         for file in files:
             IA_Broker(self.access, self.secret).delete(identifier, file["name"])
 
-    def view(self, identifier: str, item: str) -> list:
+    def list(self, identifier: str, item: str) -> list:
         files = self.find_matching_files(self.get_identifier_metadata(identifier), item)
         tree = {}
         for file in files:
@@ -187,24 +187,25 @@ class IA_Agent(object):
                     tree[new_k][sub_k] = v
                     tree.pop(k)
 
-        def dump_tree(d, depth=1) -> str:
+        def dump_tree(d, depth=1) -> list:
             d = sorted(d.copy().items(), key=lambda x: x[0])
-            format = ""
+            cascade = []
             for k, v in d:
                 if k == "":
-                    v = sorted(v)
+                    v = sorted(v, key=lambda x: x[0])
                     for _k, _v in v:
-                        self.cascade.append((depth, _k, _v))
-                        format += "    "*depth+_k+"\n"
+                        cascade.append((depth, _k, _v))
                     continue
                 elif isinstance(v, dict):
-                    self.cascade.append((depth, k))
-                    format += "    "*depth+k+"\n"
-                    format += dump_tree(v, depth + 1)
-            return format
+                    cascade.append((depth, k))
+                    cascade += dump_tree(v, depth + 1)
+            return cascade
 
-        p(identifier)
-        self.cascade = [(0, identifier)]
-        p(dump_tree(tree))
-        return self.cascade
+        cascade = [(0, identifier)]+dump_tree(tree)
+        return cascade
+
+    def view(self, identifier: str, item: str) -> None:
+        for _ in self.list(identifier, item):
+            p("    "*_[0]+_[1])
+
 
