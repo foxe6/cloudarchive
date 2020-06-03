@@ -15,10 +15,10 @@ class IA_Agent(object):
         if not self.check_identifier_created(self.identifier):
             raise Exception(f"identifier {self.identifier} does not exist")
         if os.path.isdir(join_path(root, item)):
-            for _, sub_dir, files in os.walk(os.path.join(root, item)):
+            for file_dir, _, files in os.walk(join_path(root, item)):
                 for file in files:
                     IA_Broker(self.access, self.secret, self.identifier).\
-                        upload(root, os.path.sep.join([item]+sub_dir), file)
+                        upload(root, file_dir.replace(root, "")[1:], file)
         else:
             paths = item.split(os.path.sep)
             file = paths[-1]
@@ -30,8 +30,7 @@ class IA_Agent(object):
                  cal_hash: bool = False) -> None:
         url = url.replace("https://archive.org/download/", "")
         identifier = url.split("/")[0]
-        if not self.check_identifier_created(identifier):
-            raise Exception(f"identifier {identifier} does not exist")
+        self.check_identifier_created(identifier)
         path = "/".join(url.split("/")[1:])
         files = self.find_matching_files(self.get_identifier_metadata(identifier), path)
         for file in files:
@@ -51,7 +50,7 @@ class IA_Agent(object):
         metadata = requests.get(metadata).json()
         return metadata["files"]
 
-    def find_matching_files(self, files: list, path: str):
+    def find_matching_files(self, files: list, path: str) -> list:
         is_file = False
         if len([file for file in files if file["name"] == path]) == 1:
             is_file = True
@@ -68,7 +67,7 @@ class IA_Agent(object):
         ]
         return files
 
-    def check_identifier_available(self, identifier: str):
+    def check_identifier_available(self, identifier: str) -> bool:
         r_identifier = requests.post("https://archive.org/upload/app/upload_api.php", {
             "name": "identifierAvailable",
             "identifier": identifier,
@@ -76,9 +75,10 @@ class IA_Agent(object):
         }).json()["identifier"]
         return True if identifier == r_identifier else False
 
-    def check_identifier_created(self, identifier: str):
+    def check_identifier_created(self, identifier: str) -> None:
         r = requests.get("https://archive.org/details/"+identifier)
-        return True if r.status_code == 200 else False
+        if r.status_code != 200:
+            raise Exception(f"identifier {identifier} is not created yet")
 
     def new_identifier(self, identifier: str):
         self.identifier = identifier
@@ -122,6 +122,7 @@ class IA_Agent(object):
         return r
 
     def rename(self, credentials: tuple, identifier: str, old_item: str, new_item: str):
+        self.check_identifier_created(identifier)
         if old_item == "" or new_item == "":
             raise Exception("rename name cannot be empty")
         self.s = requests.Session()
@@ -150,13 +151,60 @@ class IA_Agent(object):
             IA_Broker().rename(self.s, identifier, old_file["name"], new_file)
 
     def delete(self, identifier: str, item: str):
+        self.check_identifier_created(identifier)
         files = self.find_matching_files(self.get_identifier_metadata(identifier), item)
-        headers = {
-            "authorization": f"LOW {self.access}:{self.secret}",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36",
-            "x-archive-cascade-delete": "1"
-        }
         for file in files:
-            item = file["name"]
-            requests.delete(f"https://s3.us.archive.org/{identifier}/{item}", headers=headers)
+            IA_Broker(self.access, self.secret).delete(identifier, file["name"])
+
+    def view(self, identifier: str, item: str) -> list:
+        files = self.find_matching_files(self.get_identifier_metadata(identifier), item)
+        tree = {}
+        for file in files:
+            paths = file["name"].split("/")
+            if len(paths) == 1:
+                dir = ""
+                item = (paths[0], file)
+            else:
+                dir = "/".join(paths[:-1])
+                item = (paths[-1], file)
+            if dir not in tree:
+                if dir == "":
+                    tree[""] = []
+                else:
+                    tree[dir] = {"": []}
+            if dir == "":
+                tree[dir].append(item)
+            else:
+                tree[dir][""].append(item)
+        while any(["/" in k for k, v in tree.items()]):
+            for k, v in tree.copy().items():
+                if "/" in k:
+                    ks = k.split("/")
+                    new_k = "/".join(ks[:-1])
+                    sub_k = ks[-1]
+                    if new_k not in tree:
+                        tree[new_k] = {}
+                    tree[new_k][sub_k] = v
+                    tree.pop(k)
+
+        def dump_tree(d, depth=1) -> str:
+            d = sorted(d.copy().items(), key=lambda x: x[0])
+            format = ""
+            for k, v in d:
+                if k == "":
+                    v = sorted(v)
+                    for _k, _v in v:
+                        self.cascade.append((depth, _k, _v))
+                        format += "    "*depth+_k+"\n"
+                    continue
+                elif isinstance(v, dict):
+                    self.cascade.append((depth, k))
+                    format += "    "*depth+k+"\n"
+                    format += dump_tree(v, depth + 1)
+            return format
+
+        p(identifier)
+        self.cascade = [(0, identifier)]
+        p(dump_tree(tree))
+        return self.cascade
 
