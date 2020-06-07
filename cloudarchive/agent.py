@@ -1,6 +1,7 @@
 from .broker import *
 import text2png
 from filehandling import create_cascade, create_tree, format_cascade
+from lxml import html
 import requests
 import re
 import os
@@ -12,7 +13,6 @@ __ALL__ = ["IA_Agent"]
 
 class IA_Agent(object):
     def __init__(self, access: str = None, secret: str = None) -> None:
-        self.s = requests.Session()
         self.access = access
         self.secret = secret
 
@@ -142,9 +142,10 @@ class IA_Agent(object):
         p(f"\r[Identifier] Created {identifier} => https://archive.org/download/{identifier}")
         return r
 
-    def login(self, credentials: tuple) -> None:
-        self.s.get("https://archive.org/account/login")
-        self.s.post("https://archive.org/account/login", {
+    def __login(self, credentials: tuple) -> requests.Session:
+        s = requests.Session()
+        s.get("https://archive.org/account/login")
+        s.post("https://archive.org/account/login", {
             "username": credentials[0],
             "password": credentials[1],
             "remember": "undefined",
@@ -152,15 +153,16 @@ class IA_Agent(object):
             "login": "true",
             "submit_by_js": "true"
         })
+        return s
 
     def rename(self, credentials: tuple, identifier: str, old_path: str, new_path: str):
         self.check_identifier_created(identifier)
         if old_path == "" or new_path == "":
             raise Exception("rename name cannot be empty")
-        self.login(credentials)
+        s = self.__login(credentials)
         files = self.get_identifier_metadata(identifier)
         old_files = self.find_matching_files(files, old_path)
-        for i, old_file in enumerate(old_files):
+        for old_file in old_files:
             new_file = old_file["name"].replace(old_path, new_path, 1)
             collision = self.find_matching_files(files, new_file)
             if len(collision) == 1:
@@ -171,7 +173,7 @@ class IA_Agent(object):
                 )
         for old_file in old_files:
             new_file = old_file["name"].replace(old_path, new_path, 1)
-            IA_Broker().rename(self.s, identifier, old_file["name"], new_file)
+            IA_Broker().rename(s, identifier, old_file["name"], new_file)
 
     def delete(self, identifier: str, path: str):
         self.check_identifier_created(identifier)
@@ -183,6 +185,22 @@ class IA_Agent(object):
         files = self.find_matching_files(self.get_identifier_metadata(identifier), path)
         cascade = create_cascade(identifier, create_tree(identifier, files, "name", "/"))
         p(format_cascade(cascade))
+
+    def list_items(self, credentials: tuple) -> list:
+        s = self.__login(credentials)
+        r = s.get("https://archive.org/").content.decode()
+        username = re.search(r"https\:\/\/archive\.org\/details\/@(.*?)\"", r)[1]
+        url = f"https://archive.org/details/@{username}?&sort=-addeddate&page=<page>&scroll=1"
+        items = []
+        for i in range(1, 9999):
+            r = s.get(url.replace("<page>", str(i))).content.decode()
+            if "No results" in r:
+                break
+            r = html.fromstring(r)
+            _items = r.xpath("//div[@class='ttl']/../@title")
+            items += _items
+        return items
+
 
     # def view(self, identifier: str, path: str) -> None:
     #     for _ in self.list(identifier, path):
