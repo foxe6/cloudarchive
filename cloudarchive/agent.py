@@ -181,7 +181,7 @@ class IA_Agent(object):
 
     def list(self, identifier: str, item: str) -> list:
         files = self.find_matching_files(self.get_identifier_metadata(identifier), item)
-        cascade = create_cascade(identifier, create_tree(identifier, files, key="name"))
+        cascade = create_cascade(identifier, create_tree(identifier, files, "name", "/"))
         p(format_cascade(cascade))
         # tree = {}
         # for file in files:
