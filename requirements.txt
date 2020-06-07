@@ -1,4 +1,4 @@
-requests==2.23.0
 mfd>=0.0.1
 filehandling>=0.0.1
 omnitools>=0.0.1
+text2png>=0.0.1

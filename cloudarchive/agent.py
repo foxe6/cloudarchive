@@ -1,7 +1,7 @@
 from .broker import *
+import text2png
 import requests
 import re
-import text2png
 import os
 import time
 
@@ -106,7 +106,7 @@ class IA_Agent(object):
         if not self.check_identifier_available(identifier):
             raise Exception(f"identifier {identifier} already exists")
         p(f"[Identifier] Creating {identifier}", end="")
-        thumbnail_path = text2png.TextToPng("C:\\Windows\\Fonts\\msgothic.ttc", 64).create(self.identifier)
+        thumbnail_path = text2png.TextToPng("C:\\Windows\\Fonts\\msgothic.ttc", 64).create(identifier)
         remote_filename = os.path.basename(thumbnail_path)
         headers = {
             "authorization": f"LOW {self.access}:{self.secret}",

@@ -1,8 +1,8 @@
-import requests
-import urllib
 from filehandling import join_path
 from omnitools import p
 import mfd
+import requests
+import urllib
 import os
 import shutil
 
