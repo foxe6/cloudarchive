@@ -13,8 +13,7 @@ class IA_Agent(object):
         self.secret = secret
 
     def upload(self, identifier: str, root: str, path: str) -> None:
-        if not self.check_identifier_created(identifier):
-            raise Exception(f"identifier {identifier} does not exist")
+        self.check_identifier_created(identifier)
         if os.path.isdir(join_path(root, path)):
             for file_dir, _, files in os.walk(join_path(root, path)):
                 for file in files:
