@@ -4,7 +4,8 @@ import mfd
 import requests
 import urllib
 import os
-import shutil
+import hashlib
+import random
 
 
 class IA_Broker(object):
@@ -12,9 +13,44 @@ class IA_Broker(object):
         self.access = access
         self.secret = secret
         self.identifier = identifier
+        self.types = {
+            b"\x37\x7a\xbc\xaf": b"7z",
+            b"\x52\x61\x72\x21": b"rar",
+            b"\x50\x4b\x03\x04": b"zip",
+            b"7z": b"\x37\x7a\xbc\xaf",
+            b"rar": b"\x52\x61\x72\x21",
+            b"zip": b"\x50\x4b\x03\x04",
+            "types": [b"7z", b"rar", b"zip"]
+        }
+
+    def cloak_file_type(self, file_path: str) -> None:
+        with open(file_path, "r+b") as f:
+            f.seek(0)
+            file_header = f.read(4)
+            if file_header not in self.types:
+                return
+            type = self.types[file_header]
+            key = bytes([random.randint(0, 255)])
+            session = hashlib.sha3_512(type+key).digest()[:3]+key
+            f.seek(0)
+            f.write(session)
+            f.close()
+
+    def uncloak_file_type(self, file_path: str) -> None:
+        with open(file_path, "r+b") as f:
+            f.seek(0)
+            session = f.read(4)
+            key = session[-1]
+            for type in self.types["types"]:
+                if hashlib.sha3_512(type+key).digest()[:3] == session[:-1]:
+                    f.seek(0)
+                    f.write(self.types[type])
+                    f.close()
+                    return
 
     def upload(self, root: str, path: str, filename: str):
-        remote_filename = filename.replace(".", "_,_")
+        file = join_path(root, path, filename)
+        remote_filename = filename
         headers = {
             "authorization": f"LOW {self.access}:{self.secret}",
             "Cache-Control": "no-cache",
@@ -36,7 +72,6 @@ class IA_Broker(object):
         url_path = self.identifier+"/"+path.replace("\\", "/")+"/"+remote_filename
         url_path = url_path.replace("//", "/")
         uri = url+urllib.parse.quote(url_path, safe="")
-        file = join_path(root, path, filename)
         p(f"[Uploading] {file} => {uri}", end="")
         r = requests.put(uri, data=open(file, "rb"), headers=headers)
         p(f"\r[Uploaded] {file} => https://archive.org/download/{url_path}")
@@ -53,10 +88,10 @@ class IA_Broker(object):
         _mfd = mfd.MFD(save_dir, piece_size=piece_size)
         _f = _mfd.download(url, connections=connections, cal_hash=cal_hash, quiet=True)
         _mfd.stop()
-        _ffp = _f["file_path"]
-        _f["file_path"] = _f["file_path"].replace("_,_", ".").replace("_%2C_", ".")
-        if _ffp != _f["file_path"]:
-            shutil.move(_ffp, _f["file_path"])
+        # _ffp = _f["file_path"]
+        # _f["file_path"] = _f["file_path"].replace("_,_", ".").replace("_%2C_", ".")
+        # if _ffp != _f["file_path"]:
+        #     shutil.move(_ffp, _f["file_path"])
         p(f"\r[Downloaded] {url} => "+_f["file_path"])
         return _f
 

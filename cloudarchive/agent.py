@@ -226,8 +226,8 @@ class IA_Agent(object):
         cascade = [(0, identifier)]+dump_tree(tree)
         return cascade
 
-    def view(self, identifier: str, item: str) -> None:
-        for _ in self.list(identifier, item):
-            p("    "*_[0]+_[1])
+    # def view(self, identifier: str, item: str) -> None:
+    #     for _ in self.list(identifier, item):
+    #         p("    "*_[0]+_[1])
 
 
