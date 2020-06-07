@@ -93,6 +93,7 @@ class IA_Broker(object):
         # _f["file_path"] = _f["file_path"].replace("_,_", ".").replace("_%2C_", ".")
         # if _ffp != _f["file_path"]:
         #     shutil.move(_ffp, _f["file_path"])
+        self.uncloak_file_type(_f["file_path"])
         p(f"\r[Downloaded] {url} => "+_f["file_path"])
         return _f
 
