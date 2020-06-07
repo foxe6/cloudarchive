@@ -3,47 +3,61 @@ import requests
 import re
 import text2png
 import os
+import time
 
 
 class IA_Agent(object):
-    def __init__(self, access: str = None, secret: str = None, identifier: str = None) -> None:
+    def __init__(self, access: str = None, secret: str = None) -> None:
+        self.s = requests.Session()
         self.access = access
         self.secret = secret
-        self.identifier = identifier
 
-    def upload(self, root: str, item: str) -> None:
-        if not self.check_identifier_created(self.identifier):
-            raise Exception(f"identifier {self.identifier} does not exist")
-        if os.path.isdir(join_path(root, item)):
-            for file_dir, _, files in os.walk(join_path(root, item)):
+    def upload(self, identifier: str, root: str, path: str) -> None:
+        if not self.check_identifier_created(identifier):
+            raise Exception(f"identifier {identifier} does not exist")
+        if os.path.isdir(join_path(root, path)):
+            for file_dir, _, files in os.walk(join_path(root, path)):
                 for file in files:
-                    IA_Broker(self.access, self.secret, self.identifier).\
-                        upload(root, file_dir.replace(root, "")[1:], file)
+                    IA_Agent(self.access, self.secret).upload(
+                        identifier,
+                        root,
+                        join_path(file_dir.replace(root, "")[1:], file)
+                    )
         else:
-            paths = item.split(os.path.sep)
-            file = paths[-1]
-            path = os.path.sep.join(paths[:-1])
-            IA_Broker(self.access, self.secret, self.identifier).upload(root, path, file)
+            file = ""
+            try:
+                paths = path.split(os.path.sep)
+                file = paths[-1]
+                path = os.path.sep.join(paths[:-1])
+                IA_Broker(self.access, self.secret, identifier).upload(root, path, file)
+            except Exception as e:
+                raise Exception(
+                    f"failed to upload {root} > {path} > {file} to {identifier}",
+                    e
+                )
 
-    def download(self, save_dir: str, url: str,
+    def download(self, save_dir: str, url: str, identifier: str, path: str,
                  piece_size: int = 1024*1024*(2**4), connections: int = 2**3,
                  cal_hash: bool = False) -> None:
-        url = url.replace("https://archive.org/download/", "")
-        identifier = url.split("/")[0]
+        # url = url.replace("https://archive.org/download/", "")
+        # identifier = url.split("/")[0]
         self.check_identifier_created(identifier)
-        path = "/".join(url.split("/")[1:])
+        # path = "/".join(url.split("/")[1:])
         files = self.find_matching_files(self.get_identifier_metadata(identifier), path)
         for file in files:
-            while True:
-                hashes = IA_Broker().download(
-                    join_path(save_dir, identifier, *(file["name"].split("/")[:-1])),
-                    f"https://archive.org/download/{identifier}/"+file["name"],
-                    piece_size=piece_size, connections=connections, cal_hash=cal_hash
-                )
-                if not cal_hash or hashes["sha1"] == file["sha1"]:
-                    if cal_hash:
-                        p(f"[Verified]", hashes["file_path"], hashes["sha1"])
-                    break
+            try:
+                while True:
+                    hashes = IA_Broker().download(
+                        join_path(save_dir, identifier, *(file["name"].split("/")[:-1])),
+                        f"https://archive.org/download/{identifier}/"+file["name"],
+                        piece_size=piece_size, connections=connections, cal_hash=cal_hash
+                    )
+                    if not cal_hash or hashes["sha1"] == file["sha1"]:
+                        if cal_hash:
+                            p(f"[Verified]", hashes["file_path"], hashes["sha1"])
+                        break
+            except:
+                raise Exception(f"failed to download {identifier} > {path} to {save_dir}")
 
     def get_identifier_metadata(self, identifier: str) -> list:
         metadata = f"https://archive.org/metadata/{identifier}"
@@ -80,11 +94,18 @@ class IA_Agent(object):
         if r.status_code != 200:
             raise Exception(f"identifier {identifier} is not created yet")
 
+    def wait_until_identifier_created(self, identifier: str) -> None:
+        while True:
+            try:
+                self.check_identifier_created(identifier)
+                return
+            except:
+                time.sleep(1)
+
     def new_identifier(self, identifier: str):
-        self.identifier = identifier
-        if not self.check_identifier_available(self.identifier):
-            raise Exception(f"identifier {self.identifier} already exists")
-        p(f"[Identifier] Creating {self.identifier}", end="")
+        if not self.check_identifier_available(identifier):
+            raise Exception(f"identifier {identifier} already exists")
+        p(f"[Identifier] Creating {identifier}", end="")
         thumbnail_path = text2png.TextToPng("C:\\Windows\\Fonts\\msgothic.ttc", 64).create(self.identifier)
         remote_filename = os.path.basename(thumbnail_path)
         headers = {
@@ -103,29 +124,25 @@ class IA_Agent(object):
             "x-archive-interactive-priority": "1",
             "x-archive-meta-mediatype": "uri(data)",
             "x-archive-meta01-collection": "uri(opensource_media)",
-            "x-archive-meta01-description": f"uri({self.identifier})",
+            "x-archive-meta01-description": f"uri({identifier})",
             "x-archive-meta01-noindex": "uri(true)",
             "x-archive-meta01-private": "uri(true)",
             "x-archive-meta01-scanner": "uri(Internet%20Archive%20HTML5%20Uploader%201.6.4)",
-            "x-archive-meta01-subject": f"uri({self.identifier})",
-            "x-archive-meta01-title": f"uri({self.identifier})",
+            "x-archive-meta01-subject": f"uri({identifier})",
+            "x-archive-meta01-title": f"uri({identifier})",
             "x-archive-size-hint": "2000",
             "X-File-Name": f"uri({remote_filename})",
             "X-Requested-With": "XMLHttpRequest"
         }
         url = f"https://s3.us.archive.org/"
-        url_path = self.identifier+"/"+remote_filename
+        url_path = identifier+"/"+remote_filename
         url_path = url_path.replace("//", "/")
         uri = url+urllib.parse.quote(url_path, safe="")
         r = requests.put(uri, data=open(thumbnail_path, "rb"), headers=headers)
-        p(f"\r[Identifier] Created {self.identifier} => https://archive.org/download/{self.identifier}")
+        p(f"\r[Identifier] Created {identifier} => https://archive.org/download/{identifier}")
         return r
 
-    def rename(self, credentials: tuple, identifier: str, old_item: str, new_item: str):
-        self.check_identifier_created(identifier)
-        if old_item == "" or new_item == "":
-            raise Exception("rename name cannot be empty")
-        self.s = requests.Session()
+    def login(self, credentials: tuple) -> None:
         self.s.get("https://archive.org/account/login")
         self.s.post("https://archive.org/account/login", {
             "username": credentials[0],
@@ -135,6 +152,12 @@ class IA_Agent(object):
             "login": "true",
             "submit_by_js": "true"
         })
+
+    def rename(self, credentials: tuple, identifier: str, old_item: str, new_item: str):
+        self.check_identifier_created(identifier)
+        if old_item == "" or new_item == "":
+            raise Exception("rename name cannot be empty")
+        self.login(credentials)
         files = self.get_identifier_metadata(identifier)
         old_files = self.find_matching_files(files, old_item)
         for i, old_file in enumerate(old_files):
