@@ -1,5 +1,6 @@
 from .broker import *
 import text2png
+from filehandling import create_cascade, create_tree, format_cascade
 import requests
 import re
 import os
@@ -180,51 +181,53 @@ class IA_Agent(object):
 
     def list(self, identifier: str, item: str) -> list:
         files = self.find_matching_files(self.get_identifier_metadata(identifier), item)
-        tree = {}
-        for file in files:
-            paths = file["name"].split("/")
-            if len(paths) == 1:
-                dir = ""
-                item = (paths[0], file)
-            else:
-                dir = "/".join(paths[:-1])
-                item = (paths[-1], file)
-            if dir not in tree:
-                if dir == "":
-                    tree[""] = []
-                else:
-                    tree[dir] = {"": []}
-            if dir == "":
-                tree[dir].append(item)
-            else:
-                tree[dir][""].append(item)
-        while any(["/" in k for k, v in tree.items()]):
-            for k, v in tree.copy().items():
-                if "/" in k:
-                    ks = k.split("/")
-                    new_k = "/".join(ks[:-1])
-                    sub_k = ks[-1]
-                    if new_k not in tree:
-                        tree[new_k] = {}
-                    tree[new_k][sub_k] = v
-                    tree.pop(k)
-
-        def dump_tree(d, depth=1) -> list:
-            d = sorted(d.copy().items(), key=lambda x: x[0])
-            cascade = []
-            for k, v in d:
-                if k == "":
-                    v = sorted(v, key=lambda x: x[0])
-                    for _k, _v in v:
-                        cascade.append((depth, _k, _v))
-                    continue
-                elif isinstance(v, dict):
-                    cascade.append((depth, k))
-                    cascade += dump_tree(v, depth + 1)
-            return cascade
-
-        cascade = [(0, identifier)]+dump_tree(tree)
-        return cascade
+        cascade = create_cascade(identifier, create_tree(identifier, files))
+        p(format_cascade(cascade))
+        # tree = {}
+        # for file in files:
+        #     paths = file["name"].split("/")
+        #     if len(paths) == 1:
+        #         dir = ""
+        #         item = (paths[0], file)
+        #     else:
+        #         dir = "/".join(paths[:-1])
+        #         item = (paths[-1], file)
+        #     if dir not in tree:
+        #         if dir == "":
+        #             tree[""] = []
+        #         else:
+        #             tree[dir] = {"": []}
+        #     if dir == "":
+        #         tree[dir].append(item)
+        #     else:
+        #         tree[dir][""].append(item)
+        # while any(["/" in k for k, v in tree.items()]):
+        #     for k, v in tree.copy().items():
+        #         if "/" in k:
+        #             ks = k.split("/")
+        #             new_k = "/".join(ks[:-1])
+        #             sub_k = ks[-1]
+        #             if new_k not in tree:
+        #                 tree[new_k] = {}
+        #             tree[new_k][sub_k] = v
+        #             tree.pop(k)
+        #
+        # def dump_tree(d, depth=1) -> list:
+        #     d = sorted(d.copy().items(), key=lambda x: x[0])
+        #     cascade = []
+        #     for k, v in d:
+        #         if k == "":
+        #             v = sorted(v, key=lambda x: x[0])
+        #             for _k, _v in v:
+        #                 cascade.append((depth, _k, _v))
+        #             continue
+        #         elif isinstance(v, dict):
+        #             cascade.append((depth, k))
+        #             cascade += dump_tree(v, depth + 1)
+        #     return cascade
+        #
+        # cascade = [(0, identifier)]+dump_tree(tree)
+        # return cascade
 
     # def view(self, identifier: str, item: str) -> None:
     #     for _ in self.list(identifier, item):

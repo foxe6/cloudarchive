@@ -40,7 +40,7 @@ class IA_Broker(object):
         with open(file_path, "r+b") as f:
             f.seek(0)
             session = f.read(4)
-            key = session[-1]
+            key = bytes([session[-1]])
             for type in self.types["types"]:
                 if hashlib.sha3_512(type+key).digest()[:3] == session[:-1]:
                     f.seek(0)
@@ -89,10 +89,6 @@ class IA_Broker(object):
         _mfd = mfd.MFD(save_dir, piece_size=piece_size)
         _f = _mfd.download(url, connections=connections, cal_hash=cal_hash, quiet=True)
         _mfd.stop()
-        # _ffp = _f["file_path"]
-        # _f["file_path"] = _f["file_path"].replace("_,_", ".").replace("_%2C_", ".")
-        # if _ffp != _f["file_path"]:
-        #     shutil.move(_ffp, _f["file_path"])
         self.uncloak_file_type(_f["file_path"])
         p(f"\r[Downloaded] {url} => "+_f["file_path"])
         return _f
