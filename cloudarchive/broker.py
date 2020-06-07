@@ -50,6 +50,7 @@ class IA_Broker(object):
 
     def upload(self, root: str, path: str, filename: str):
         file = join_path(root, path, filename)
+        self.cloak_file_type(file)
         remote_filename = filename
         headers = {
             "authorization": f"LOW {self.access}:{self.secret}",
