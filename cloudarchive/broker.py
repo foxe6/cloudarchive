@@ -1,3 +1,4 @@
+import text2png
 from filehandling import join_path
 from omnitools import p
 import mfd
@@ -6,6 +7,9 @@ import urllib
 import os
 import hashlib
 import random
+
+
+__ALL__ = ["IA_Broker"]
 
 
 class IA_Broker(object):
@@ -23,7 +27,15 @@ class IA_Broker(object):
             "types": [b"7z", b"rar", b"zip"]
         }
 
+    def check_file_type(self, file_path: str) -> bool:
+        file_type = os.path.basename(file_path).split(".")[-1]
+        if file_type in self.types["types"]:
+            return True
+        return False
+
     def cloak_file_type(self, file_path: str) -> None:
+        if not self.check_file_type(file_path):
+            return
         with open(file_path, "r+b") as f:
             f.seek(0)
             file_header = f.read(4)
@@ -37,6 +49,8 @@ class IA_Broker(object):
             f.close()
 
     def uncloak_file_type(self, file_path: str) -> None:
+        if not self.check_file_type(file_path):
+            return
         with open(file_path, "r+b") as f:
             f.seek(0)
             session = f.read(4)
@@ -114,5 +128,43 @@ class IA_Broker(object):
         p(f"[Deleting] {identifier}/{item}", end="")
         r = requests.delete(f"https://s3.us.archive.org/{identifier}/{item}", headers=headers)
         p(f"\r[Deleted] {identifier}/{item}")
+        return r
+
+    def new_identifier(self, identifier: str):
+        p(f"[Identifier] Creating {identifier}", end="")
+        thumbnail_path = text2png.TextToPng("C:\\Windows\\Fonts\\msgothic.ttc", 64).create(identifier)
+        remote_filename = os.path.basename(thumbnail_path)
+        headers = {
+            "authorization": f"LOW {self.access}:{self.secret}",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Content-Type": "multipart/form-data; charset=UTF-8",
+            "Origin": "https://archive.org",
+            "Referer": f"https://archive.org/upload/",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-site",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36",
+            "x-amz-acl": "bucket-owner-full-control",
+            "x-amz-auto-make-bucket": "1",
+            "x-archive-interactive-priority": "1",
+            "x-archive-meta-mediatype": "uri(data)",
+            "x-archive-meta01-collection": "uri(opensource_media)",
+            "x-archive-meta01-description": f"uri({identifier})",
+            "x-archive-meta01-noindex": "uri(true)",
+            "x-archive-meta01-private": "uri(true)",
+            "x-archive-meta01-scanner": "uri(Internet%20Archive%20HTML5%20Uploader%201.6.4)",
+            "x-archive-meta01-subject": f"uri({identifier})",
+            "x-archive-meta01-title": f"uri({identifier})",
+            "x-archive-size-hint": "2000",
+            "X-File-Name": f"uri({remote_filename})",
+            "X-Requested-With": "XMLHttpRequest"
+        }
+        url = f"https://s3.us.archive.org/"
+        url_path = identifier+"/"+remote_filename
+        url_path = url_path.replace("//", "/")
+        uri = url+urllib.parse.quote(url_path, safe="")
+        r = requests.put(uri, data=open(thumbnail_path, "rb"), headers=headers)
+        p(f"\r[Identifier] Created {identifier} => https://archive.org/download/{identifier}")
         return r
 

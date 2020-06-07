@@ -1,5 +1,4 @@
 from .broker import *
-import text2png
 from filehandling import create_cascade, create_tree, format_cascade
 from lxml import html
 import requests
@@ -13,15 +12,17 @@ __ALL__ = ["IA_Agent"]
 
 class IA_Agent(object):
     def __init__(self, access: str = None, secret: str = None) -> None:
-        self.access = access
-        self.secret = secret
+        self.iaa_upload = lambda identifier, root, path: IA_Agent(access, secret).upload(identifier, root, path)
+        self.iab_upload = lambda identifier, root, path, file: IA_Broker(access, secret, identifier).upload(root, path, file)
+        self.iab_new_identifier = lambda identifier: IA_Broker(access, secret).new_identifier(identifier)
+        self.iab_delete = lambda identifier, file_name: IA_Broker(access, secret).delete(identifier, file_name)
 
     def upload(self, identifier: str, root: str, path: str) -> None:
         self.check_identifier_created(identifier)
         if os.path.isdir(join_path(root, path)):
             for file_dir, _, files in os.walk(join_path(root, path)):
                 for file in files:
-                    IA_Agent(self.access, self.secret).upload(
+                    self.iaa_upload(
                         identifier,
                         root,
                         join_path(file_dir.replace(root, "")[1:], file)
@@ -32,7 +33,7 @@ class IA_Agent(object):
                 paths = path.split(os.path.sep)
                 file = paths[-1]
                 path = os.path.sep.join(paths[:-1])
-                IA_Broker(self.access, self.secret, identifier).upload(root, path, file)
+                self.iab_upload(identifier, root, path, file)
             except Exception as e:
                 raise Exception(
                     f"failed to upload {root} > {path} > {file} to {identifier}",
@@ -105,42 +106,7 @@ class IA_Agent(object):
     def new_identifier(self, identifier: str):
         if not self.check_identifier_available(identifier):
             raise Exception(f"identifier {identifier} already exists")
-        p(f"[Identifier] Creating {identifier}", end="")
-        thumbnail_path = text2png.TextToPng("C:\\Windows\\Fonts\\msgothic.ttc", 64).create(identifier)
-        remote_filename = os.path.basename(thumbnail_path)
-        headers = {
-            "authorization": f"LOW {self.access}:{self.secret}",
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "Content-Type": "multipart/form-data; charset=UTF-8",
-            "Origin": "https://archive.org",
-            "Referer": f"https://archive.org/upload/",
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-site",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36",
-            "x-amz-acl": "bucket-owner-full-control",
-            "x-amz-auto-make-bucket": "1",
-            "x-archive-interactive-priority": "1",
-            "x-archive-meta-mediatype": "uri(data)",
-            "x-archive-meta01-collection": "uri(opensource_media)",
-            "x-archive-meta01-description": f"uri({identifier})",
-            "x-archive-meta01-noindex": "uri(true)",
-            "x-archive-meta01-private": "uri(true)",
-            "x-archive-meta01-scanner": "uri(Internet%20Archive%20HTML5%20Uploader%201.6.4)",
-            "x-archive-meta01-subject": f"uri({identifier})",
-            "x-archive-meta01-title": f"uri({identifier})",
-            "x-archive-size-hint": "2000",
-            "X-File-Name": f"uri({remote_filename})",
-            "X-Requested-With": "XMLHttpRequest"
-        }
-        url = f"https://s3.us.archive.org/"
-        url_path = identifier+"/"+remote_filename
-        url_path = url_path.replace("//", "/")
-        uri = url+urllib.parse.quote(url_path, safe="")
-        r = requests.put(uri, data=open(thumbnail_path, "rb"), headers=headers)
-        p(f"\r[Identifier] Created {identifier} => https://archive.org/download/{identifier}")
-        return r
+        return self.iab_new_identifier(identifier)
 
     def __login(self, credentials: tuple) -> requests.Session:
         s = requests.Session()
@@ -179,7 +145,7 @@ class IA_Agent(object):
         self.check_identifier_created(identifier)
         files = self.find_matching_files(self.get_identifier_metadata(identifier), path)
         for file in files:
-            IA_Broker(self.access, self.secret).delete(identifier, file["name"])
+            self.iab_delete(identifier, file["name"])
 
     def list_content(self, identifier: str, path: str) -> None:
         files = self.find_matching_files(self.get_identifier_metadata(identifier), path)
