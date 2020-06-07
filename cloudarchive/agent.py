@@ -7,6 +7,9 @@ import os
 import time
 
 
+__ALL__ = ["IA_Agent"]
+
+
 class IA_Agent(object):
     def __init__(self, access: str = None, secret: str = None) -> None:
         self.s = requests.Session()
@@ -36,13 +39,10 @@ class IA_Agent(object):
                     e
                 )
 
-    def download(self, save_dir: str, url: str, identifier: str, path: str,
+    def download(self, save_dir: str, identifier: str, path: str,
                  piece_size: int = 1024*1024*(2**4), connections: int = 2**3,
                  cal_hash: bool = False) -> None:
-        # url = url.replace("https://archive.org/download/", "")
-        # identifier = url.split("/")[0]
         self.check_identifier_created(identifier)
-        # path = "/".join(url.split("/")[1:])
         files = self.find_matching_files(self.get_identifier_metadata(identifier), path)
         for file in files:
             try:
@@ -153,84 +153,39 @@ class IA_Agent(object):
             "submit_by_js": "true"
         })
 
-    def rename(self, credentials: tuple, identifier: str, old_item: str, new_item: str):
+    def rename(self, credentials: tuple, identifier: str, old_path: str, new_path: str):
         self.check_identifier_created(identifier)
-        if old_item == "" or new_item == "":
+        if old_path == "" or new_path == "":
             raise Exception("rename name cannot be empty")
         self.login(credentials)
         files = self.get_identifier_metadata(identifier)
-        old_files = self.find_matching_files(files, old_item)
+        old_files = self.find_matching_files(files, old_path)
         for i, old_file in enumerate(old_files):
-            new_file = old_file["name"].replace(old_item, new_item, 1)
+            new_file = old_file["name"].replace(old_path, new_path, 1)
             collision = self.find_matching_files(files, new_file)
             if len(collision) == 1:
                 raise Exception(
-                    f"cannot rename {old_item} to {new_item}\n"+
-                    f"because {new_item} already exists or\n"+
-                    f"a file from {old_item} already exists in {new_item}"
+                    f"cannot rename {old_path} to {new_path}\n"+
+                    f"because {new_path} already exists or\n"+
+                    f"a file from {old_path} already exists in {new_path}"
                 )
         for old_file in old_files:
-            new_file = old_file["name"].replace(old_item, new_item, 1)
+            new_file = old_file["name"].replace(old_path, new_path, 1)
             IA_Broker().rename(self.s, identifier, old_file["name"], new_file)
 
-    def delete(self, identifier: str, item: str):
+    def delete(self, identifier: str, path: str):
         self.check_identifier_created(identifier)
-        files = self.find_matching_files(self.get_identifier_metadata(identifier), item)
+        files = self.find_matching_files(self.get_identifier_metadata(identifier), path)
         for file in files:
             IA_Broker(self.access, self.secret).delete(identifier, file["name"])
 
-    def list(self, identifier: str, item: str) -> list:
-        files = self.find_matching_files(self.get_identifier_metadata(identifier), item)
+    def list_content(self, identifier: str, path: str) -> None:
+        files = self.find_matching_files(self.get_identifier_metadata(identifier), path)
         cascade = create_cascade(identifier, create_tree(identifier, files, "name", "/"))
         p(format_cascade(cascade))
-        # tree = {}
-        # for file in files:
-        #     paths = file["name"].split("/")
-        #     if len(paths) == 1:
-        #         dir = ""
-        #         item = (paths[0], file)
-        #     else:
-        #         dir = "/".join(paths[:-1])
-        #         item = (paths[-1], file)
-        #     if dir not in tree:
-        #         if dir == "":
-        #             tree[""] = []
-        #         else:
-        #             tree[dir] = {"": []}
-        #     if dir == "":
-        #         tree[dir].append(item)
-        #     else:
-        #         tree[dir][""].append(item)
-        # while any(["/" in k for k, v in tree.items()]):
-        #     for k, v in tree.copy().items():
-        #         if "/" in k:
-        #             ks = k.split("/")
-        #             new_k = "/".join(ks[:-1])
-        #             sub_k = ks[-1]
-        #             if new_k not in tree:
-        #                 tree[new_k] = {}
-        #             tree[new_k][sub_k] = v
-        #             tree.pop(k)
-        #
-        # def dump_tree(d, depth=1) -> list:
-        #     d = sorted(d.copy().items(), key=lambda x: x[0])
-        #     cascade = []
-        #     for k, v in d:
-        #         if k == "":
-        #             v = sorted(v, key=lambda x: x[0])
-        #             for _k, _v in v:
-        #                 cascade.append((depth, _k, _v))
-        #             continue
-        #         elif isinstance(v, dict):
-        #             cascade.append((depth, k))
-        #             cascade += dump_tree(v, depth + 1)
-        #     return cascade
-        #
-        # cascade = [(0, identifier)]+dump_tree(tree)
-        # return cascade
 
-    # def view(self, identifier: str, item: str) -> None:
-    #     for _ in self.list(identifier, item):
+    # def view(self, identifier: str, path: str) -> None:
+    #     for _ in self.list(identifier, path):
     #         p("    "*_[0]+_[1])
 
 
