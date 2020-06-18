@@ -139,7 +139,7 @@ class IA_Agent(object):
                 )
         for old_file in old_files:
             new_file = old_file["name"].replace(old_path, new_path, 1)
-            IA_Broker().rename(identifier, old_file["name"], new_file)
+            self.iab_rename(identifier, old_file["name"], new_file)
 
     def delete(self, identifier: str, path: str):
         self.check_identifier_created(identifier)

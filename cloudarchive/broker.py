@@ -121,9 +121,7 @@ class IA_Broker(object):
         url += "/"+identifier+"/"+new_item
         r = requests.put(url, headers=headers)
         p(f"\r[Copied] <{identifier}> {old_item} => {new_item}", end="")
-        p(f"\r[Deleting] <{identifier}> {old_item}", end="")
         self.delete(identifier, old_item)
-        p(f"\r[Deleted] <{identifier}> {old_item}", end="")
         p(f"\r[Renamed] <{identifier}> {old_item} => {new_item}")
         return r
 
