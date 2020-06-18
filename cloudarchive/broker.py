@@ -176,9 +176,8 @@ class IA_Broker(object):
 
     def metadata(self, identifier: str, data: dict):
         url = f"https://archive.org/metadata/{identifier}"
-        headers = {
-            "authorization": f"LOW {self.access}:{self.secret}"
-        }
-        r = requests.post(url, headers=headers, data=data)
+        data["access"] = self.access
+        data["secret"] = self.secret
+        r = requests.post(url, data=data)
         return r
 
