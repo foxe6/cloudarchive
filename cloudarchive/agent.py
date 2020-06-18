@@ -166,8 +166,8 @@ class IA_Agent(object):
                 data["-patch"][0]["op"] = "add"
             else:
                 data["-patch"][0]["op"] = "replace"
-        data["-patch"] = jd(data["-patch"])
         p(f"[Metadata] <{identifier}>", data["-patch"][0]["op"], k, v)
+        data["-patch"] = jd(data["-patch"])
         self.iab_metadata(identifier, data)
 
     def list_content(self, identifier: str, path: str) -> None:
