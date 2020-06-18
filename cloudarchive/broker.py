@@ -190,9 +190,9 @@ class IA_Broker(object):
         }
         if op != "remove":
             data["-patch"][0]["value"] = v
-        p(f"[Metadata] <{identifier}>", k, v, end="")
+        p(f"[Metadata] <{identifier}> {k}: {v}", end="")
         data["-patch"] = jd(data["-patch"])
         r = requests.post(url, data=data)
-        p(f"\r[Metadata] <{identifier}>", op, k, v)
+        p(f"\r[Metadata] <{identifier}> {op} {k}: {v}")
         return r
 

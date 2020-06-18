@@ -156,8 +156,11 @@ class IA_Agent(object):
         else:
             if not k in metadata:
                 op = "add"
-            else:
+            elif metadata[k] != v:
                 op = "replace"
+            else:
+                p(f"[Metadata] <{identifier}> exists {k}: {v}")
+                return
         self.iab_metadata(identifier, op, k, v)
 
     def list_content(self, identifier: str, path: str) -> None:
