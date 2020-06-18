@@ -17,7 +17,7 @@ class IA_Agent(object):
         self.iab_new_identifier = lambda identifier: IA_Broker(access, secret).new_identifier(identifier)
         self.iab_delete = lambda identifier, file_name: IA_Broker(access, secret).delete(identifier, file_name)
         self.iab_rename = lambda identifier, old_item, new_item: IA_Broker(access, secret).rename(identifier, old_item, new_item)
-        self.iab_metadata = lambda identifier, data: IA_Broker(access, secret).metadata(identifier, data)
+        self.iab_metadata = lambda identifier, op, k, v: IA_Broker(access, secret).metadata(identifier, op, k, v)
 
     def upload(self, identifier: str, root: str, path: str) -> None:
         self.check_identifier_created(identifier)
@@ -151,21 +151,14 @@ class IA_Agent(object):
     def metadata(self, identifier: str, k: str, v: str):
         self.check_identifier_created(identifier)
         metadata = self.get_identifier_metadata(identifier)["metadata"]
-        data = {
-            "-patch": [{}],
-            "-target": "metadata",
-            "priority": -5
-        }
-        data["-patch"][0]["path"] = "/"+k
         if v == "REMOVE_TAG":
-            data["-patch"][0]["op"] = "remove"
+            op = "remove"
         else:
-            data["-patch"][0]["value"] = v
             if not k in metadata:
-                data["-patch"][0]["op"] = "add"
+                op = "add"
             else:
-                data["-patch"][0]["op"] = "replace"
-        self.iab_metadata(identifier, data)
+                op = "replace"
+        self.iab_metadata(identifier, op, k, v)
 
     def list_content(self, identifier: str, path: str) -> None:
         files = self.find_matching_files(self.get_identifier_metadata(identifier)["files"], path)

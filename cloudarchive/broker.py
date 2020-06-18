@@ -174,18 +174,25 @@ class IA_Broker(object):
         p(f"\r[Identifier] Created {identifier} => https://archive.org/download/{identifier}")
         return r
 
-    def metadata(self, identifier: str, data: dict):
+    def metadata(self, identifier: str, op: str, k: str, v: str):
         url = f"https://archive.org/metadata/{identifier}"
-        data["access"] = self.access
-        data["secret"] = self.secret
-        k = data["-patch"][0]["path"][1:]
-        if "value" in data["-patch"][0]:
-            v = data["-patch"][0]["value"]
-        else:
-            v = ""
-        p(f"[Metadata] <{identifier}>", k, v)
+        data = {
+            "-patch": [
+                {
+                    "op": op,
+                    "path": "/"+k
+                }
+            ],
+            "-target": "metadata",
+            "priority": -5,
+            "access": self.access,
+            "secret": self.secret
+        }
+        if op != "remove":
+            data["-patch"][0]["value"] = v
+        p(f"[Metadata] <{identifier}>", k, v, end="")
         data["-patch"] = jd(data["-patch"])
         r = requests.post(url, data=data)
-        p(f"[Metadata] <{identifier}>", data["-patch"][0]["op"], k, v)
+        p(f"\r[Metadata] <{identifier}>", op, k, v)
         return r
 
