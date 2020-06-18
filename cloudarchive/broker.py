@@ -125,15 +125,15 @@ class IA_Broker(object):
         p(f"\r[Renamed] <{identifier}> {old_item} => {new_item}")
         return r
 
-    def delete(self, identifier: str, item: str):
+    def delete(self, identifier: str, path: str):
         headers = {
             "authorization": f"LOW {self.access}:{self.secret}",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36",
             "x-archive-cascade-delete": "1"
         }
-        p(f"[Deleting] {identifier}/{item}", end="")
-        r = requests.delete(f"https://s3.us.archive.org/{identifier}/{item}", headers=headers)
-        p(f"\r[Deleted] {identifier}/{item}")
+        p(f"[Deleting] {identifier}/{path}", end="")
+        r = requests.delete(f"https://s3.us.archive.org/{identifier}/{path}", headers=headers)
+        p(f"\r[Deleted] {identifier}/{path}")
         return r
 
     def new_identifier(self, identifier: str):
