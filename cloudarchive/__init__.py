@@ -1,4 +1,4 @@
-__version__ = "0.0.44"
+__version__ = "0.0.45"
 __keywords__ = ["internet archive cloud storage"]
 
 

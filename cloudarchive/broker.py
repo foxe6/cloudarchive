@@ -107,15 +107,23 @@ class IA_Broker(object):
         p(f"\r[Downloaded] {url} => "+_f["file_path"])
         return _f
 
-    def rename(self, session: requests.Session, identifier: str, old_item: str, new_item: str):
-        p(f"[Renaming] <{identifier}> {old_item} => {new_item}", end="")
-        r = session.post("https://archive.org/edit.php", data={
-            "cmd": "rename",
-            "oldname": "root/"+old_item,
-            "newname": "root/"+new_item
-        }, cookies={
-            "http-editor-v3": identifier
-        })
+    def rename(self, identifier: str, old_item: str, new_item: str):
+        p(f"[Renaming] <{identifier}> {old_item} => {new_item}")
+        p(f"[Copying] <{identifier}> {old_item} => {new_item}", end="")
+        headers = {
+            "authorization": f"LOW {self.access}:{self.secret}",
+            "x-amz-copy-source": "/"+identifier+"/"+old_item,
+            "x-amz-metadata-directive": "COPY",
+            "x-archive-keep-old-version": "0",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36"
+        }
+        url = "https://s3.us.archive.org"
+        url += "/"+identifier+"/"+new_item
+        r = requests.put(url, headers=headers)
+        p(f"\r[Copied] <{identifier}> {old_item} => {new_item}", end="")
+        p(f"\r[Deleting] <{identifier}> {old_item}", end="")
+        self.delete(identifier, old_item)
+        p(f"\r[Deleted] <{identifier}> {old_item}", end="")
         p(f"\r[Renamed] <{identifier}> {old_item} => {new_item}")
         return r
 

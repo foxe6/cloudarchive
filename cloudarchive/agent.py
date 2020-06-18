@@ -16,6 +16,7 @@ class IA_Agent(object):
         self.iab_upload = lambda identifier, root, path, file: IA_Broker(access, secret, identifier).upload(root, path, file)
         self.iab_new_identifier = lambda identifier: IA_Broker(access, secret).new_identifier(identifier)
         self.iab_delete = lambda identifier, file_name: IA_Broker(access, secret).delete(identifier, file_name)
+        self.iab_rename = lambda identifier, old_item, new_item: IA_Broker(access, secret).rename(identifier, old_item, new_item)
 
     def upload(self, identifier: str, root: str, path: str) -> None:
         self.check_identifier_created(identifier)
@@ -121,11 +122,10 @@ class IA_Agent(object):
         })
         return s
 
-    def rename(self, credentials: tuple, identifier: str, old_path: str, new_path: str):
+    def rename(self, identifier: str, old_path: str, new_path: str):
         self.check_identifier_created(identifier)
         if old_path == "" or new_path == "":
             raise Exception("rename name cannot be empty")
-        s = self.__login(credentials)
         files = self.get_identifier_metadata(identifier)
         old_files = self.find_matching_files(files, old_path)
         for old_file in old_files:
@@ -139,7 +139,7 @@ class IA_Agent(object):
                 )
         for old_file in old_files:
             new_file = old_file["name"].replace(old_path, new_path, 1)
-            IA_Broker().rename(s, identifier, old_file["name"], new_file)
+            IA_Broker().rename(identifier, old_file["name"], new_file)
 
     def delete(self, identifier: str, path: str):
         self.check_identifier_created(identifier)
