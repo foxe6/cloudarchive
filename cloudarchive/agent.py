@@ -1,6 +1,5 @@
 from .broker import *
 from filehandling import create_cascade, create_tree, format_cascade
-from omnitools import jd
 from lxml import html
 import requests
 import re
@@ -166,8 +165,6 @@ class IA_Agent(object):
                 data["-patch"][0]["op"] = "add"
             else:
                 data["-patch"][0]["op"] = "replace"
-        p(f"[Metadata] <{identifier}>", data["-patch"][0]["op"], k, v)
-        data["-patch"] = jd(data["-patch"])
         self.iab_metadata(identifier, data)
 
     def list_content(self, identifier: str, path: str) -> None:

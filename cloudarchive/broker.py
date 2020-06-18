@@ -1,6 +1,6 @@
 import text2png
 from filehandling import join_path
-from omnitools import p
+from omnitools import p, jd
 import mfd
 import requests
 import urllib
@@ -178,6 +178,14 @@ class IA_Broker(object):
         url = f"https://archive.org/metadata/{identifier}"
         data["access"] = self.access
         data["secret"] = self.secret
+        k = data["-patch"][0]["path"][1:]
+        if "value" in data["-patch"][0]:
+            v = data["-patch"][0]["value"]
+        else:
+            v = ""
+        p(f"[Metadata] <{identifier}>", k, v)
+        data["-patch"] = jd(data["-patch"])
         r = requests.post(url, data=data)
+        p(f"[Metadata] <{identifier}>", data["-patch"][0]["op"], k, v)
         return r
 
