@@ -1,5 +1,6 @@
 from .broker import *
 from filehandling import create_cascade, create_tree, format_cascade
+from omnitools import jd
 from lxml import html
 import requests
 import re
@@ -17,6 +18,7 @@ class IA_Agent(object):
         self.iab_new_identifier = lambda identifier: IA_Broker(access, secret).new_identifier(identifier)
         self.iab_delete = lambda identifier, file_name: IA_Broker(access, secret).delete(identifier, file_name)
         self.iab_rename = lambda identifier, old_item, new_item: IA_Broker(access, secret).rename(identifier, old_item, new_item)
+        self.iab_metadata = lambda identifier, data: IA_Broker(access, secret).metadata(identifier, data)
 
     def upload(self, identifier: str, root: str, path: str) -> None:
         self.check_identifier_created(identifier)
@@ -45,7 +47,7 @@ class IA_Agent(object):
                  piece_size: int = 1024*1024*(2**4), connections: int = 2**3,
                  cal_hash: bool = False) -> None:
         self.check_identifier_created(identifier)
-        files = self.find_matching_files(self.get_identifier_metadata(identifier), path)
+        files = self.find_matching_files(self.get_identifier_metadata(identifier)["files"], path)
         for file in files:
             try:
                 while True:
@@ -61,10 +63,10 @@ class IA_Agent(object):
             except:
                 raise Exception(f"failed to download {identifier} > {path} to {save_dir}")
 
-    def get_identifier_metadata(self, identifier: str) -> list:
+    def get_identifier_metadata(self, identifier: str) -> dict:
         metadata = f"https://archive.org/metadata/{identifier}"
         metadata = requests.get(metadata).json()
-        return metadata["files"]
+        return metadata
 
     def find_matching_files(self, files: list, path: str) -> list:
         is_file = False
@@ -126,7 +128,7 @@ class IA_Agent(object):
         self.check_identifier_created(identifier)
         if old_path == "" or new_path == "":
             raise Exception("rename name cannot be empty")
-        files = self.get_identifier_metadata(identifier)
+        files = self.get_identifier_metadata(identifier)["files"]
         old_files = self.find_matching_files(files, old_path)
         for old_file in old_files:
             new_file = old_file["name"].replace(old_path, new_path, 1)
@@ -143,12 +145,32 @@ class IA_Agent(object):
 
     def delete(self, identifier: str, path: str):
         self.check_identifier_created(identifier)
-        files = self.find_matching_files(self.get_identifier_metadata(identifier), path)
+        files = self.find_matching_files(self.get_identifier_metadata(identifier)["files"], path)
         for file in files:
             self.iab_delete(identifier, file["name"])
 
+    def metadata(self, identifier: str, k: str, v: str):
+        self.check_identifier_created(identifier)
+        metadata = self.get_identifier_metadata(identifier)["metadata"]
+        data = {
+            "-patch": [{}],
+            "-target": "metadata",
+            "priority": -5
+        }
+        data["-patch"][0]["path"] = "/"+k
+        if v == "REMOVE_TAG":
+            data["-patch"][0]["op"] = "remove"
+        else:
+            data["-patch"][0]["value"] = v
+            if not k in metadata:
+                data["-patch"][0]["op"] = "add"
+            else:
+                data["-patch"][0]["op"] = "replace"
+        data["-patch"] = jd(data["-patch"])
+        self.iab_metadata(identifier, data)
+
     def list_content(self, identifier: str, path: str) -> None:
-        files = self.find_matching_files(self.get_identifier_metadata(identifier), path)
+        files = self.find_matching_files(self.get_identifier_metadata(identifier)["files"], path)
         cascade = create_cascade(identifier, create_tree(identifier, files, "name", "/"))
         p(format_cascade(cascade))
 

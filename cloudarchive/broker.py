@@ -120,7 +120,7 @@ class IA_Broker(object):
         url = "https://s3.us.archive.org"
         url += "/"+identifier+"/"+new_item
         r = requests.put(url, headers=headers)
-        p(f"\r[Copied] <{identifier}> {old_item} => {new_item}", end="")
+        p(f"\r[Copied] <{identifier}> {old_item} => {new_item}")
         self.delete(identifier, old_item)
         p(f"\r[Renamed] <{identifier}> {old_item} => {new_item}")
         return r
@@ -172,5 +172,13 @@ class IA_Broker(object):
         uri = url+urllib.parse.quote(url_path, safe="")
         r = requests.put(uri, data=open(thumbnail_path, "rb"), headers=headers)
         p(f"\r[Identifier] Created {identifier} => https://archive.org/download/{identifier}")
+        return r
+
+    def metadata(self, identifier: str, data: dict):
+        url = f"https://archive.org/metadata/{identifier}"
+        headers = {
+            "authorization": f"LOW {self.access}:{self.secret}"
+        }
+        r = requests.post(url, headers=headers, data=data)
         return r
 
