@@ -1,5 +1,5 @@
 import text2png
-from filehandling import join_path
+from filehandling import join_path, abs_dir, file_size
 from omnitools import p, jd
 import mfd
 import requests
@@ -7,10 +7,17 @@ import urllib
 import os
 import hashlib
 import random
+import platform
+import sys
+from cloudarchive import __version__
 
 
 __ALL__ = ["IA_Broker"]
 
+
+USER_AGENT = lambda access: os.path.basename(os.path.dirname(abs_dir(__file__)))+\
+             f"/{__version__} ("+platform.uname()[0]+"; "+platform.uname()[-1]+f"; {access}; Python "+\
+             "{0}.{1}.{2}".format(*sys.version_info)+")"
 
 class IA_Broker(object):
     def __init__(self, access: str = None, secret: str = None, identifier: str = None) -> None:
@@ -68,20 +75,20 @@ class IA_Broker(object):
         remote_filename = filename
         headers = {
             "authorization": f"LOW {self.access}:{self.secret}",
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "Content-Type": "multipart/form-data; charset=UTF-8",
-            "Origin": "https://archive.org",
+            # "Cache-Control": "no-cache",
+            # "Connection": "keep-alive",
+            # "Content-Type": "multipart/form-data; charset=UTF-8",
+            # "Origin": "https://archive.org",
             "Referer": f"https://archive.org/upload/?identifier={self.identifier}",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-site",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36",
+            # "Sec-Fetch-Mode": "cors",
+            # "Sec-Fetch-Site": "same-site",
+            "User-Agent": USER_AGENT(self.access),
             "x-amz-acl": "bucket-owner-full-control",
             "x-amz-auto-make-bucket": "1",
             "x-archive-interactive-priority": "1",
-            "x-archive-size-hint": "2",
+            "x-archive-size-hint": file_size(file),
             "X-File-Name": f"uri({remote_filename})",
-            "X-Requested-With": "XMLHttpRequest"
+            # "X-Requested-With": "XMLHttpRequest"
         }
         url = f"https://s3.us.archive.org/"
         url_path = self.identifier+"/"+path.replace("\\", "/")+"/"+remote_filename
@@ -92,19 +99,20 @@ class IA_Broker(object):
         p(f"\r[Uploaded] {file} => https://archive.org/download/{url_path}")
         return r
 
-    def download(self, save_dir: str, url: str,
+    def download(self, save_dir: str, identifier: str, path: str,
                  piece_size: int = 1024*1024*(2**4), connections: int = 2**3,
                  cal_hash: bool = False) -> dict:
         try:
             os.makedirs(save_dir)
         except:
             pass
-        p(f"[Downloading] {url} => {save_dir}", end="")
+        url = f"https://archive.org/download/{identifier}/{path}"
+        p(f"[Downloading] <{identifier}> path => {save_dir}", end="")
         _mfd = mfd.MFD(save_dir, piece_size=piece_size)
         _f = _mfd.download(url, connections=connections, cal_hash=cal_hash, quiet=True)
         _mfd.stop()
         self.uncloak_file_type(_f["file_path"])
-        p(f"\r[Downloaded] {url} => "+_f["file_path"])
+        p(f"\r[Downloaded] <{identifier}> path => "+_f["file_path"])
         return _f
 
     def rename(self, identifier: str, old_item: str, new_item: str):
@@ -115,7 +123,7 @@ class IA_Broker(object):
             "x-amz-copy-source": "/"+identifier+"/"+old_item,
             "x-amz-metadata-directive": "COPY",
             "x-archive-keep-old-version": "0",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36"
+            "User-Agent": USER_AGENT(self.access)
         }
         url = "https://s3.us.archive.org"
         url += "/"+identifier+"/"+new_item
@@ -128,12 +136,12 @@ class IA_Broker(object):
     def delete(self, identifier: str, path: str):
         headers = {
             "authorization": f"LOW {self.access}:{self.secret}",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36",
+            "User-Agent": USER_AGENT(self.access),
             "x-archive-cascade-delete": "1"
         }
-        p(f"[Deleting] {identifier}/{path}", end="")
+        p(f"[Deleting] <{identifier}> {path}", end="")
         r = requests.delete(f"https://s3.us.archive.org/{identifier}/{path}", headers=headers)
-        p(f"\r[Deleted] {identifier}/{path}")
+        p(f"\r[Deleted] <{identifier}> {path}")
         return r
 
     def new_identifier(self, identifier: str):
@@ -142,15 +150,15 @@ class IA_Broker(object):
         remote_filename = os.path.basename(thumbnail_path)
         headers = {
             "authorization": f"LOW {self.access}:{self.secret}",
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "Content-Type": "multipart/form-data; charset=UTF-8",
-            "Origin": "https://archive.org",
+            # "Cache-Control": "no-cache",
+            # "Connection": "keep-alive",
+            # "Content-Type": "multipart/form-data; charset=UTF-8",
+            # "Origin": "https://archive.org",
             "Referer": f"https://archive.org/upload/",
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-site",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36",
+            # "Sec-Fetch-Dest": "empty",
+            # "Sec-Fetch-Mode": "cors",
+            # "Sec-Fetch-Site": "same-site",
+            "User-Agent": USER_AGENT(self.access),
             "x-amz-acl": "bucket-owner-full-control",
             "x-amz-auto-make-bucket": "1",
             "x-archive-interactive-priority": "1",
@@ -162,7 +170,7 @@ class IA_Broker(object):
             "x-archive-meta01-scanner": "uri(Internet%20Archive%20HTML5%20Uploader%201.6.4)",
             "x-archive-meta01-subject": f"uri({identifier})",
             "x-archive-meta01-title": f"uri({identifier})",
-            "x-archive-size-hint": "2000",
+            "x-archive-size-hint": file_size(thumbnail_path),
             "X-File-Name": f"uri({remote_filename})",
             "X-Requested-With": "XMLHttpRequest"
         }

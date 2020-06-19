@@ -52,7 +52,7 @@ class IA_Agent(object):
                 while True:
                     hashes = IA_Broker().download(
                         join_path(save_dir, identifier, *(file["name"].split("/")[:-1])),
-                        f"https://archive.org/download/{identifier}/"+file["name"],
+                        identifier, file["name"],
                         piece_size=piece_size, connections=connections, cal_hash=cal_hash
                     )
                     if not cal_hash or hashes["sha1"] == file["sha1"]:
@@ -97,13 +97,14 @@ class IA_Agent(object):
         if r.status_code != 200:
             raise Exception(f"identifier {identifier} is not created yet")
 
-    def wait_until_identifier_created(self, identifier: str) -> None:
+    def wait_until_identifier_created(self, identifier: str, func=lambda: None) -> None:
         while True:
             try:
                 self.check_identifier_created(identifier)
-                return
+                break
             except:
                 time.sleep(1)
+        func()
 
     def new_identifier(self, identifier: str):
         if not self.check_identifier_available(identifier):
