@@ -149,7 +149,7 @@ class IA_Agent(object):
         for file in files:
             self.iab_delete(identifier, file["name"])
 
-    def metadata(self, identifier: str, k: str, v: str):
+    def metadata(self, identifier: str, k: str = None, v: str = None):
         self.check_identifier_created(identifier)
         metadata = self.get_identifier_metadata(identifier)["metadata"]
         if not k:
