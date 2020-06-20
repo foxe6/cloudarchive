@@ -166,10 +166,10 @@ class IA_Agent(object):
                 return
         self.iab_metadata(identifier, op, k, v)
 
-    def list_content(self, identifier: str, path: str) -> None:
+    def list_content(self, identifier: str, path: str) -> tuple:
         files = self.find_matching_files(self.get_identifier_metadata(identifier)["files"], path)
         cascade = create_cascade(identifier, create_tree(identifier, files, "name", "/"))
-        p(format_cascade(cascade))
+        return (cascade, format_cascade(cascade))
 
     def list_items(self, credentials: tuple) -> list:
         s = self.__login(credentials)
