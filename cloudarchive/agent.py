@@ -109,7 +109,7 @@ class IA_Agent(object):
     def new_identifier(self, identifier: str):
         if not self.check_identifier_available(identifier):
             raise Exception(f"identifier {identifier} already exists")
-        return self.iab_new_identifier(identifier)
+        self.iab_new_identifier(identifier)
 
     def __login(self, credentials: tuple) -> requests.Session:
         s = requests.Session()

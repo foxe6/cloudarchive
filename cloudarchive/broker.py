@@ -86,7 +86,7 @@ class IA_Broker(object):
             "x-amz-acl": "bucket-owner-full-control",
             "x-amz-auto-make-bucket": "1",
             "x-archive-interactive-priority": "1",
-            "x-archive-size-hint": file_size(file),
+            "x-archive-size-hint": str(file_size(file)),
             "X-File-Name": f"uri({remote_filename})",
             # "X-Requested-With": "XMLHttpRequest"
         }
@@ -170,7 +170,7 @@ class IA_Broker(object):
             "x-archive-meta01-scanner": "uri(Internet%20Archive%20HTML5%20Uploader%201.6.4)",
             "x-archive-meta01-subject": f"uri({identifier})",
             "x-archive-meta01-title": f"uri({identifier})",
-            "x-archive-size-hint": file_size(thumbnail_path),
+            "x-archive-size-hint": str(file_size(thumbnail_path)),
             "X-File-Name": f"uri({remote_filename})",
             "X-Requested-With": "XMLHttpRequest"
         }
