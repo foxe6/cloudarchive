@@ -1,4 +1,4 @@
-# Internet Archive Python Frontend
+# Internet Archive (archive.org) Python Frontend
 
 <badges>[![version](https://img.shields.io/pypi/v/cloudarchive.svg)](https://pypi.org/project/cloudarchive/)
 [![license](https://img.shields.io/pypi/l/cloudarchive.svg)](https://pypi.org/project/cloudarchive/)
