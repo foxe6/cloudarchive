@@ -12,13 +12,13 @@ badges = """[![version](https://img.shields.io/pypi/v/<name>.svg)](https://pypi.
 """
 name = os.path.basename(os.path.dirname(os.path.abspath(__file__)))
 badges = re.sub(r"<name>", name, badges)
-readme = open("README.md").read()
+readme = open("README.md", "rb").read().decode("utf-8")
 readme = re.sub(r"(<badges>).*?(</badges>)", rf"\g<1>{badges}\g<2>", readme, flags=re.DOTALL)
 open("README.md", "wb").write(readme.encode("utf-8"))
 description = re.search(r"<i>(.*?)</i>", readme)[1]
 setup(
     name="cloudarchive",
-    version="0.0.61",
+    version="0.0.62",
     keywords=["internetarchive cloud archive storage archive.org"],
     packages=find_packages(),
     url="https://github.com/foxe6/cloudarchive",

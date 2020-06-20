@@ -56,21 +56,21 @@ iaa.check_identifier_created(
 
 # consider the following identifier (footest) tree:
 # footest
-# â”œâ”€â”€â”€ footest3.7z
-# â””â”€â”€â”¬ footest2
-#    â”œâ”€â”€â”€ somefile
-#    â”œâ”€â”€â”€ somefile.txt
-#    â”œâ”€â”€â”€ testfile
-#    â”œâ”€â”€â”¬ footest3
-#    â”‚  â”œâ”€â”€â”€ somefile
-#    â”‚  â”œâ”€â”€â”€ somefile.txt
-#    â”‚  â”œâ”€â”€â”€ testfile
-#    â”‚  â””â”€â”€â”€ testfile.zip
-#    â””â”€â”€â”¬ footest7
-#       â”œâ”€â”€â”€ somefile
-#       â”œâ”€â”€â”€ somefile.txt
-#       â”œâ”€â”€â”€ testfile
-#       â””â”€â”€â”€ testfile.zip
+# ├─── footest3.7z
+# └──┬ footest2
+#    ├─── somefile
+#    ├─── somefile.txt
+#    ├─── testfile
+#    ├──┬ footest3
+#    │  ├─── somefile
+#    │  ├─── somefile.txt
+#    │  ├─── testfile
+#    │  └─── testfile.zip
+#    └──┬ footest7
+#       ├─── somefile
+#       ├─── somefile.txt
+#       ├─── testfile
+#       └─── testfile.zip
 
 # delete a folder or a file
 iaa.delete(
@@ -79,16 +79,16 @@ iaa.delete(
 )
 # result:
 # footest
-# â”œâ”€â”€â”€ footest3.7z
-# â””â”€â”€â”¬ footest2
-#    â”œâ”€â”€â”€ somefile
-#    â”œâ”€â”€â”€ somefile.txt
-#    â”œâ”€â”€â”€ testfile
-#    â””â”€â”€â”¬ footest7
-#       â”œâ”€â”€â”€ somefile
-#       â”œâ”€â”€â”€ somefile.txt
-#       â”œâ”€â”€â”€ testfile
-#       â””â”€â”€â”€ testfile.zip
+# ├─── footest3.7z
+# └──┬ footest2
+#    ├─── somefile
+#    ├─── somefile.txt
+#    ├─── testfile
+#    └──┬ footest7
+#       ├─── somefile
+#       ├─── somefile.txt
+#       ├─── testfile
+#       └─── testfile.zip
 
 # download a folder or a file
 iaa.download(
@@ -103,13 +103,13 @@ iaa.download(
 )
 # result:
 # D:\testing # save directory
-# â””â”€â”€â”¬ footest # identifier
-#    â””â”€â”€â”¬ footest2
-#       â””â”€â”€â”¬ footest3 # selected path
-#          â”œâ”€â”€â”€ somefile
-#          â”œâ”€â”€â”€ somefile.txt
-#          â”œâ”€â”€â”€ testfile
-#          â””â”€â”€â”€ testfile.zip
+# └──┬ footest # identifier
+#    └──┬ footest2
+#       └──┬ footest3 # selected path
+#          ├─── somefile
+#          ├─── somefile.txt
+#          ├─── testfile
+#          └─── testfile.zip
 
 # search for matching file names
 # used in other methods
@@ -153,12 +153,12 @@ iaa.list_content(
 #         (3, 'testfile.zip', {'name': 'footest2/footest3/testfile.zip', 'source': 'original', 'mtime': '1591130250', 'size': '520477', 'md5': '59fe680036dfc2cddf64865687fbb180', 'crc32': '5f138f18', 'sha1': 'b250a8c48ebdfbb349cc47e66f115db3a8fd3b85', 'format': 'Unknown'})
 #     ],
 # '''footest2
-# â””â”€â”€â”¬ footest2
-#    â””â”€â”€â”¬ footest3
-#       â”œâ”€â”€â”€ somefile
-#       â”œâ”€â”€â”€ somefile.txt
-#       â”œâ”€â”€â”€ testfile
-#       â””â”€â”€â”€ testfile.zip
+# └──┬ footest2
+#    └──┬ footest3
+#       ├─── somefile
+#       ├─── somefile.txt
+#       ├─── testfile
+#       └─── testfile.zip
 # '''
 # )
 
@@ -204,23 +204,23 @@ iaa.rename(
 )
 # result:
 # footest
-# â”œâ”€â”€â”€ footest3.7z
-# â””â”€â”€â”¬ footest2
-#    â”œâ”€â”€â”€ somefile
-#    â”œâ”€â”€â”€ somefile.txt
-#    â”œâ”€â”€â”€ testfile
-#    â””â”€â”€â”¬ footest69
-#       â”œâ”€â”€â”€ somefile
-#       â”œâ”€â”€â”€ somefile.txt
-#       â”œâ”€â”€â”€ testfile
-#       â””â”€â”€â”€ testfile.zip
+# ├─── footest3.7z
+# └──┬ footest2
+#    ├─── somefile
+#    ├─── somefile.txt
+#    ├─── testfile
+#    └──┬ footest69
+#       ├─── somefile
+#       ├─── somefile.txt
+#       ├─── testfile
+#       └─── testfile.zip
 
 # consider the following directory (D:\testing\footest):
 # D:\testing\footest
-# â””â”€â”€â”¬ footest2
-#    â””â”€â”€â”¬ footest69
-#       â””â”€â”€â”¬ new
-#          â””â”€â”€â”€ somefile
+# └──┬ footest2
+#    └──┬ footest69
+#       └──┬ new
+#          └─── somefile
 
 # upload a folder or a file
 # preserve folder structure of specified path
@@ -231,18 +231,18 @@ iaa.upload(
 )
 # result:
 # footest
-# â”œâ”€â”€â”€ footest3.7z
-# â””â”€â”€â”¬ footest2
-#    â”œâ”€â”€â”€ somefile
-#    â”œâ”€â”€â”€ somefile.txt
-#    â”œâ”€â”€â”€ testfile
-#    â””â”€â”€â”¬ footest69
-#       â”œâ”€â”€â”€ somefile
-#       â”œâ”€â”€â”€ somefile.txt
-#       â”œâ”€â”€â”€ testfile
-#       â”œâ”€â”€â”€ testfile.zip
-#       â””â”€â”€â”¬ new
-#          â””â”€â”€â”€ somefile
+# ├─── footest3.7z
+# └──┬ footest2
+#    ├─── somefile
+#    ├─── somefile.txt
+#    ├─── testfile
+#    └──┬ footest69
+#       ├─── somefile
+#       ├─── somefile.txt
+#       ├─── testfile
+#       ├─── testfile.zip
+#       └──┬ new
+#          └─── somefile
 
 # wait until the identifier is created
 iaa.wait_until_identifier_created(
