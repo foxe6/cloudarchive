@@ -152,6 +152,8 @@ class IA_Agent(object):
     def metadata(self, identifier: str, k: str, v: str):
         self.check_identifier_created(identifier)
         metadata = self.get_identifier_metadata(identifier)["metadata"]
+        if not k:
+            return metadata
         if v == "REMOVE_TAG":
             op = "remove"
         else:
