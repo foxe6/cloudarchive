@@ -107,12 +107,12 @@ class IA_Broker(object):
         except:
             pass
         url = f"https://archive.org/download/{identifier}/{path}"
-        p(f"[Downloading] <{identifier}> path => {save_dir}", end="")
+        p(f"[Downloading] <{identifier}> {path} => {save_dir}", end="")
         _mfd = mfd.MFD(save_dir, piece_size=piece_size)
         _f = _mfd.download(url, connections=connections, cal_hash=cal_hash, quiet=True)
         _mfd.stop()
         self.uncloak_file_type(_f["file_path"])
-        p(f"\r[Downloaded] <{identifier}> path => "+_f["file_path"])
+        p(f"\r[Downloaded] <{identifier}> {path} => "+_f["file_path"])
         return _f
 
     def rename(self, identifier: str, old_item: str, new_item: str):
