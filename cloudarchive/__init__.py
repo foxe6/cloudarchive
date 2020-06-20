@@ -1,5 +1,5 @@
-__version__ = "0.0.60"
-__keywords__ = ["internet archive cloud storage archive.org"]
+__version__ = "0.0.61"
+__keywords__ = ["internetarchive cloud archive storage archive.org"]
 
 
 # if not __version__.endswith(".0"):
