@@ -169,7 +169,7 @@ iaa.list_items(
         "password"   
     )
 )
-# ['footest', 'fsk8f', ...]
+# ['footest', 'other_identifier', ...]
 
 # list all metadata fields of the identifier
 iaa.metadata(
@@ -187,6 +187,8 @@ iaa.metadata(
     v="vasasd" or "REMOVE_TAG"
 )
 # [Metadata] <footest> add ka: vasasd
+# [Metadata] <footest> replace ka: vasasd
+# [Metadata] <footest> remove ka: 
 
 # create a new item/identifier
 iaa.new_identifier(
@@ -209,7 +211,7 @@ iaa.rename(
 #    ├─── somefile
 #    ├─── somefile.txt
 #    ├─── testfile
-#    └──┬ footest69
+#    └──┬ footest69 # renamed path
 #       ├─── somefile
 #       ├─── somefile.txt
 #       ├─── testfile
@@ -241,7 +243,7 @@ iaa.upload(
 #       ├─── somefile.txt
 #       ├─── testfile
 #       ├─── testfile.zip
-#       └──┬ new
+#       └──┬ new # uploaded path
 #          └─── somefile
 
 # wait until the identifier is created
@@ -250,6 +252,7 @@ iaa.wait_until_identifier_created(
 )
 
 # example of uploading files to a new item/identifier
+# upload all files in "C:\SYSTEM_DUMP_20200620" to identifier "SYSTEM_DUMP_20200620"
 iaa = IA_Agent("...", "...")
 new_identifier = "SYSTEM_DUMP_20200620"
 iaa.new_identifier(new_identifier)
