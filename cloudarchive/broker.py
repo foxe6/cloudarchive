@@ -3,12 +3,13 @@ from filehandling import join_path, abs_dir, file_size
 from omnitools import p, jd
 import mfd
 import requests
-import urllib
+import urllib.parse
 import os
 import hashlib
 import random
 import platform
 import sys
+import shutil
 from cloudarchive import __version__
 
 
@@ -69,10 +70,18 @@ class IA_Broker(object):
                     f.close()
                     return
 
+    def blur_file_ext(self, filename: str) -> str:
+        return filename+".cloudarchive"
+
+    def unblur_file_ext(self, filename: str) -> str:
+        org_filename = filename.replace(".cloudarchive", "")
+        shutil.move(filename, org_filename)
+        return org_filename
+
     def upload(self, root: str, path: str, filename: str):
         file = join_path(root, path, filename)
         self.cloak_file_type(file)
-        remote_filename = filename
+        remote_filename = self.blur_file_ext(filename)
         headers = {
             "authorization": f"LOW {self.access}:{self.secret}",
             # "Cache-Control": "no-cache",
@@ -112,6 +121,7 @@ class IA_Broker(object):
         _f = _mfd.download(url, connections=connections, cal_hash=cal_hash, quiet=True)
         _mfd.stop()
         self.uncloak_file_type(_f["file_path"])
+        _f["file_path"] = self.unblur_file_ext(_f["file_path"])
         p(f"\r[Downloaded] <{identifier}> {path} => "+_f["file_path"])
         return _f
 
@@ -144,10 +154,15 @@ class IA_Broker(object):
         p(f"\r[Deleted] <{identifier}> {path}")
         return r
 
-    def new_identifier(self, identifier: str):
+    def new_identifier(self, title: str, identifier: str = None, description: str = None):
         p(f"[Identifier] Creating {identifier}", end="")
         thumbnail_path = text2png.TextToPng("C:\\Windows\\Fonts\\msgothic.ttc", 64).create(identifier)
         remote_filename = os.path.basename(thumbnail_path)
+        title = urllib.parse.quote(title)
+        if description is None:
+            description = title
+        # if identifier is None:
+        #     ...
         headers = {
             "authorization": f"LOW {self.access}:{self.secret}",
             # "Cache-Control": "no-cache",
@@ -164,12 +179,12 @@ class IA_Broker(object):
             "x-archive-interactive-priority": "1",
             "x-archive-meta-mediatype": "uri(data)",
             "x-archive-meta01-collection": "uri(opensource_media)",
-            "x-archive-meta01-description": f"uri({identifier})",
+            "x-archive-meta01-description": f"uri({description})",
             "x-archive-meta01-noindex": "uri(true)",
             "x-archive-meta01-private": "uri(true)",
             "x-archive-meta01-scanner": "uri(Internet%20Archive%20HTML5%20Uploader%201.6.4)",
-            "x-archive-meta01-subject": f"uri({identifier})",
-            "x-archive-meta01-title": f"uri({identifier})",
+            "x-archive-meta01-subject": f"uri({title})",
+            "x-archive-meta01-title": f"uri({title})",
             "x-archive-size-hint": str(file_size(thumbnail_path)),
             "X-File-Name": f"uri({remote_filename})",
             "X-Requested-With": "XMLHttpRequest"
@@ -179,7 +194,7 @@ class IA_Broker(object):
         url_path = url_path.replace("//", "/")
         uri = url+urllib.parse.quote(url_path, safe="")
         r = requests.put(uri, data=open(thumbnail_path, "rb"), headers=headers)
-        p(f"\r[Identifier] Created {identifier} => https://archive.org/download/{identifier}")
+        p(f"\r[Identifier] Created {title} => https://archive.org/download/{identifier}")
         return r
 
     def metadata(self, identifier: str, op: str, k: str, v: str):
