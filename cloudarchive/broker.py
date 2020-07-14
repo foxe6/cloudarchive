@@ -154,15 +154,15 @@ class IA_Broker(object):
         p(f"\r[Deleted] <{identifier}> {path}")
         return r
 
-    def new_identifier(self, title: str, identifier: str = None, description: str = None):
+    def new_identifier(self, identifier: str, title: str = None, description: str = None):
         p(f"[Identifier] Creating {identifier}", end="")
         thumbnail_path = text2png.TextToPng("C:\\Windows\\Fonts\\msgothic.ttc", 64).create(identifier)
         remote_filename = os.path.basename(thumbnail_path)
-        title = urllib.parse.quote(title)
         if description is None:
-            description = title
-        # if identifier is None:
-        #     ...
+            description = identifier
+        if title is None:
+            title = identifier
+        title = urllib.parse.quote(title)
         headers = {
             "authorization": f"LOW {self.access}:{self.secret}",
             # "Cache-Control": "no-cache",
