@@ -84,20 +84,13 @@ class IA_Broker(object):
         remote_filename = self.blur_file_ext(filename)
         headers = {
             "authorization": f"LOW {self.access}:{self.secret}",
-            # "Cache-Control": "no-cache",
-            # "Connection": "keep-alive",
-            # "Content-Type": "multipart/form-data; charset=UTF-8",
-            # "Origin": "https://archive.org",
             "Referer": f"https://archive.org/upload/?identifier={self.identifier}",
-            # "Sec-Fetch-Mode": "cors",
-            # "Sec-Fetch-Site": "same-site",
             "User-Agent": USER_AGENT(self.access),
             "x-amz-acl": "bucket-owner-full-control",
             "x-amz-auto-make-bucket": "1",
             "x-archive-interactive-priority": "1",
             "x-archive-size-hint": str(file_size(file)),
-            "X-File-Name": f"uri({remote_filename})",
-            # "X-Requested-With": "XMLHttpRequest"
+            "X-File-Name": f"uri({remote_filename})"
         }
         url = f"https://s3.us.archive.org/"
         url_path = self.identifier+"/"+path.replace("\\", "/")+"/"+remote_filename
@@ -163,16 +156,10 @@ class IA_Broker(object):
         if title is None:
             title = identifier
         title = urllib.parse.quote(title)
+        description = urllib.parse.quote(description)
         headers = {
             "authorization": f"LOW {self.access}:{self.secret}",
-            # "Cache-Control": "no-cache",
-            # "Connection": "keep-alive",
-            # "Content-Type": "multipart/form-data; charset=UTF-8",
-            # "Origin": "https://archive.org",
             "Referer": f"https://archive.org/upload/",
-            # "Sec-Fetch-Dest": "empty",
-            # "Sec-Fetch-Mode": "cors",
-            # "Sec-Fetch-Site": "same-site",
             "User-Agent": USER_AGENT(self.access),
             "x-amz-acl": "bucket-owner-full-control",
             "x-amz-auto-make-bucket": "1",
@@ -186,8 +173,7 @@ class IA_Broker(object):
             "x-archive-meta01-subject": f"uri({title})",
             "x-archive-meta01-title": f"uri({title})",
             "x-archive-size-hint": str(file_size(thumbnail_path)),
-            "X-File-Name": f"uri({remote_filename})",
-            "X-Requested-With": "XMLHttpRequest"
+            "X-File-Name": f"uri({remote_filename})"
         }
         url = f"https://s3.us.archive.org/"
         url_path = identifier+"/"+remote_filename
