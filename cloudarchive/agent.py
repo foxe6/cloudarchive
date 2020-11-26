@@ -187,6 +187,9 @@ class IA_Agent(object):
                 e
             )
 
+    def delete_identifier(self, identifier: str):
+        self.metadata(identifier, "collection", "test_collection")
+
 
     # def view(self, identifier: str, path: str) -> None:
     #     for _ in self.list(identifier, path):

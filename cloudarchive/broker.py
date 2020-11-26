@@ -22,6 +22,10 @@ USER_AGENT = lambda access: os.path.basename(os.path.dirname(abs_dir(__file__)))
 
 class IA_Broker(object):
     def __init__(self, access: str = None, secret: str = None, identifier: str = None) -> None:
+        self.__s = requests.Session()
+        self.__s.headers.update({"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36"})
+        self.__s.get("https://archive.org/")
+        self.__s.get("https://archive.org/create")
         self.access = access
         self.secret = secret
         self.identifier = identifier
@@ -85,21 +89,32 @@ class IA_Broker(object):
         remote_filename = self.blur_file_ext(filename)
         headers = {
             "authorization": f"LOW {self.access}:{self.secret}",
-            "Referer": f"https://archive.org/upload/?identifier={self.identifier}",
-            "User-Agent": USER_AGENT(self.access),
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Language": "en-US,en;q=0.9,zh-TW;q=0.8,zh;q=0.7,ru;q=0.6",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Content-Type": "multipart/form-data; charset=UTF-8",
+            # "Referer": f"https://archive.org/upload/?identifier={self.identifier}",
+            # "User-Agent": USER_AGENT(self.access),
             "x-amz-acl": "bucket-owner-full-control",
             "x-amz-auto-make-bucket": "1",
-            "x-archive-interactive-priority": "1",
+            # "x-archive-interactive-priority": "1",
             "x-archive-queue-derive": "0",
             "x-archive-size-hint": str(file_size(file)),
-            "X-File-Name": f"uri({remote_filename})"
+            "X-File-Size": str(file_size(file)),
+            "Content-Length": str(file_size(file)),
+            "X-File-Name": f"uri({remote_filename})",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-site"
         }
         url = f"https://s3.us.archive.org/"
         url_path = self.identifier+"/"+path.replace("\\", "/")+"/"+remote_filename
         url_path = url_path.replace("//", "/")
         uri = url+urllib.parse.quote(url_path, safe="")
         p(f"[Uploading] {file} => {uri}", end="")
-        r = requests.put(uri, data=open(file, "rb"), headers=headers)
+        r = self.__s.put(uri, data=open(file, "rb"), headers=headers)
         if cloaked:
             self.uncloak_file_type(file)
         if r.status_code != 200:
@@ -134,7 +149,7 @@ class IA_Broker(object):
         }
         url = "https://s3.us.archive.org"
         url += "/"+identifier+"/"+new_item
-        r = requests.put(url, headers=headers)
+        r = self.__s.put(url, headers=headers)
         if r.status_code != 200:
             raise Exception(f"failed to copy {identifier} {old_item} => {new_item}", r.status_code, r.content)
         p(f"\r[Renamed] {identifier} {old_item} => {new_item}")
@@ -149,7 +164,7 @@ class IA_Broker(object):
             "x-archive-cascade-delete": "1"
         }
         p(f"[Deleting] {identifier} {path}", end="")
-        r = requests.delete(f"https://s3.us.archive.org/{identifier}/{path}", headers=headers)
+        r = self.__s.delete(f"https://s3.us.archive.org/{identifier}/{path}", headers=headers)
         if r.status_code != 200:
             raise Exception(f"failed to delete {identifier} {path}", r.status_code, r.content)
         p(f"\r[Deleted] {identifier} {path}")
@@ -167,28 +182,41 @@ class IA_Broker(object):
         description = urllib.parse.quote(description)
         headers = {
             "authorization": f"LOW {self.access}:{self.secret}",
-            "Referer": f"https://archive.org/upload/",
-            "User-Agent": USER_AGENT(self.access),
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Language": "en-US,en;q=0.9,zh-TW;q=0.8,zh;q=0.7,ru;q=0.6",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "Content-Type": "multipart/form-data; charset=UTF-8",
+            # "Referer": f"https://archive.org/upload/",
+            # "User-Agent": USER_AGENT(self.access),
             "x-amz-acl": "bucket-owner-full-control",
             "x-amz-auto-make-bucket": "1",
-            "x-archive-interactive-priority": "1",
+            # "x-archive-interactive-priority": "1",
             "x-archive-queue-derive": "0",
             "x-archive-meta-mediatype": "uri(data)",
             "x-archive-meta01-collection": "uri(opensource_media)",
-            "x-archive-meta01-description": f"uri({description})",
+            # "x-archive-meta01-description": f"uri({description})",
+            "x-archive-meta01-description": f"uri(video%20software%20data)",
             "x-archive-meta01-noindex": "uri(true)",
             "x-archive-meta01-private": "uri(true)",
             "x-archive-meta01-scanner": "uri(Internet%20Archive%20HTML5%20Uploader%201.6.4)",
-            "x-archive-meta01-subject": f"uri({title})",
+            # "x-archive-meta01-subject": f"uri({title})",
+            "x-archive-meta01-subject": f"uri(video%3Bsoftware%3Bdata)",
             "x-archive-meta01-title": f"uri({title})",
             "x-archive-size-hint": str(file_size(thumbnail_path)),
-            "X-File-Name": f"uri({remote_filename})"
+            "X-File-Size": str(file_size(thumbnail_path)),
+            "Content-Length": str(file_size(thumbnail_path)),
+            "X-File-Name": f"uri({remote_filename})",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-site"
         }
         url = f"https://s3.us.archive.org/"
         url_path = identifier+"/"+remote_filename
         url_path = url_path.replace("//", "/")
         uri = url+urllib.parse.quote(url_path, safe="")
-        r = requests.put(uri, data=open(thumbnail_path, "rb"), headers=headers)
+        r = self.__s.put(uri, data=open(thumbnail_path, "rb"), headers=headers)
         if r.status_code != 200:
             raise Exception(f"failed to create {identifier}", r.status_code, r.content)
         p(f"\r[Identifier] Created {org_title} => https://archive.org/download/{identifier}")
@@ -211,7 +239,7 @@ class IA_Broker(object):
             data["-patch"][0]["value"] = v
         p(f"[Metadata] Pending {identifier} {op} {k}: {v}", end="")
         data["-patch"] = jd(data["-patch"])
-        r = requests.post(url, data=data)
+        r = self.__s.post(url, data=data)
         if r.status_code != 200:
             raise Exception(f"failed metadata {identifier} {op} {k}: {v}", r.status_code, r.content)
         p(f"\r[Metadata] Done {identifier} {op} {k}: {v}")

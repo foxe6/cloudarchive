@@ -63,6 +63,9 @@ IA_Agent("access", "secret").new_identifier("{}", "metadata_username")'''.format
         self.__iaa.wait_until_identifier_created(identifier)
         return identifier
 
+    def delete_item(self, identifier: str):
+        self.__iaa.metadata(identifier, "collection", "test_collection")
+
     def get_item_content(self, identifier: str, path: str) -> tuple:
         if identifier == self.email_prefix:
             raise Exception("failed to fetch/modify because {} is a metadata item".format(identifier))
