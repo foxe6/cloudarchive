@@ -43,10 +43,25 @@ IA_Agent("access", "secret").new_identifier("{}", "metadata_username")'''.format
                 items[ks[i].replace("/details/", "")] = vs[i]
         return items
 
-    def new_item(self, title: str, description: str = None, identifier: str = None) -> None:
+    def get_identifier_by_title(self, regex: str) -> str:
+        org_regex = regex
+        regex = re.compile(regex)
+        matches = []
+        for k, v in self.get_items().items():
+            if regex.search(v):
+                matches.append(k)
+        if len(matches) > 1:
+            raise Exception("multiple title matches against {}".format(org_regex), matches)
+        elif len(matches) == 0:
+            raise Exception("zero title match against {}".format(org_regex), matches)
+        return matches[0]
+
+    def new_item(self, title: str, description: str = None, identifier: str = None) -> str:
         if identifier is None:
             identifier = randstr(100)
         self.__iaa.new_identifier(identifier, title, description)
+        self.__iaa.wait_until_identifier_created(identifier)
+        return identifier
 
     def get_item_content(self, identifier: str, path: str) -> tuple:
         if identifier == self.email_prefix:
