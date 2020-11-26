@@ -89,6 +89,7 @@ class IA_Broker(object):
             "x-amz-acl": "bucket-owner-full-control",
             "x-amz-auto-make-bucket": "1",
             "x-archive-interactive-priority": "1",
+            "x-archive-queue-derive": "0",
             "x-archive-size-hint": str(file_size(file)),
             "X-File-Name": f"uri({remote_filename})"
         }
