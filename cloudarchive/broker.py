@@ -41,9 +41,9 @@ class IA_Broker(object):
             return True
         return False
 
-    def cloak_file_type(self, file_path: str) -> None:
+    def cloak_file_type(self, file_path: str) -> bool:
         if not self.check_file_type(file_path):
-            return
+            return False
         with open(file_path, "r+b") as f:
             f.seek(0)
             file_header = f.read(4)
@@ -55,6 +55,7 @@ class IA_Broker(object):
             f.seek(0)
             f.write(session)
             f.close()
+        return True
 
     def uncloak_file_type(self, file_path: str) -> None:
         if not self.check_file_type(file_path):
@@ -80,7 +81,7 @@ class IA_Broker(object):
 
     def upload(self, root: str, path: str, filename: str):
         file = join_path(root, path, filename)
-        self.cloak_file_type(file)
+        cloaked = self.cloak_file_type(file)
         remote_filename = self.blur_file_ext(filename)
         headers = {
             "authorization": f"LOW {self.access}:{self.secret}",
@@ -99,8 +100,11 @@ class IA_Broker(object):
         uri = url+urllib.parse.quote(url_path, safe="")
         p(f"[Uploading] {file} => {uri}", end="")
         r = requests.put(uri, data=open(file, "rb"), headers=headers)
+        if cloaked:
+            self.uncloak_file_type(file)
+        if r.status_code != 200:
+            raise Exception(f"failed to upload {file} => {uri}", r.status_code, r.content)
         p(f"\r[Uploaded] {file} => https://archive.org/download/{url_path}")
-        return r
 
     def download(self, save_dir: str, identifier: str, path: str,
                  piece_size: int = 1024*1024*(2**4), connections: int = 2**3,
@@ -116,12 +120,11 @@ class IA_Broker(object):
         _mfd.stop()
         self.uncloak_file_type(_f["file_path"])
         _f["file_path"] = self.unblur_file_ext(_f["file_path"])
-        p(f"\r[Downloaded] <{identifier}> {path} => "+_f["file_path"])
+        p(f"\r[Downloaded] {identifier} "+_f["file_path"]+" <= {path}")
         return _f
 
     def rename(self, identifier: str, old_item: str, new_item: str):
-        p(f"[Renaming] <{identifier}> {old_item} => {new_item}")
-        p(f"[Copying] <{identifier}> {old_item} => {new_item}", end="")
+        p(f"[Renaming] {identifier} {old_item} => {new_item}", end="")
         headers = {
             "authorization": f"LOW {self.access}:{self.secret}",
             "x-amz-copy-source": "/"+identifier+"/"+old_item,
@@ -132,10 +135,12 @@ class IA_Broker(object):
         url = "https://s3.us.archive.org"
         url += "/"+identifier+"/"+new_item
         r = requests.put(url, headers=headers)
-        p(f"\r[Copied] <{identifier}> {old_item} => {new_item}")
-        self.delete(identifier, old_item)
-        p(f"\r[Renamed] <{identifier}> {old_item} => {new_item}")
-        return r
+        if r.status_code != 200:
+            raise Exception(f"failed to copy {identifier} {old_item} => {new_item}", r.status_code, r.content)
+        p(f"\r[Renamed] {identifier} {old_item} => {new_item}")
+        r = self.delete(identifier, old_item)
+        if r.status_code != 200:
+            raise Exception(f"failed to delete old item {identifier} {old_item}", r.status_code, r.content)
 
     def delete(self, identifier: str, path: str):
         headers = {
@@ -143,19 +148,21 @@ class IA_Broker(object):
             "User-Agent": USER_AGENT(self.access),
             "x-archive-cascade-delete": "1"
         }
-        p(f"[Deleting] <{identifier}> {path}", end="")
+        p(f"[Deleting] {identifier} {path}", end="")
         r = requests.delete(f"https://s3.us.archive.org/{identifier}/{path}", headers=headers)
-        p(f"\r[Deleted] <{identifier}> {path}")
-        return r
+        if r.status_code != 200:
+            raise Exception(f"failed to delete {identifier} {path}", r.status_code, r.content)
+        p(f"\r[Deleted] {identifier} {path}")
 
     def new_identifier(self, identifier: str, title: str = None, description: str = None):
-        p(f"[Identifier] Creating {identifier}", end="")
-        thumbnail_path = text2png.TextToPng("C:\\Windows\\Fonts\\msgothic.ttc", 64).create(identifier)
+        p(f"[Identifier] Creating new {identifier}", end="")
+        thumbnail_path = text2png.TextToPng("C:\\Windows\\Fonts\\msgothic.ttc", 64).create(title or identifier)
         remote_filename = os.path.basename(thumbnail_path)
         if description is None:
             description = identifier
         if title is None:
             title = identifier
+        org_title = title
         title = urllib.parse.quote(title)
         description = urllib.parse.quote(description)
         headers = {
@@ -165,6 +172,7 @@ class IA_Broker(object):
             "x-amz-acl": "bucket-owner-full-control",
             "x-amz-auto-make-bucket": "1",
             "x-archive-interactive-priority": "1",
+            "x-archive-queue-derive": "0",
             "x-archive-meta-mediatype": "uri(data)",
             "x-archive-meta01-collection": "uri(opensource_media)",
             "x-archive-meta01-description": f"uri({description})",
@@ -181,8 +189,9 @@ class IA_Broker(object):
         url_path = url_path.replace("//", "/")
         uri = url+urllib.parse.quote(url_path, safe="")
         r = requests.put(uri, data=open(thumbnail_path, "rb"), headers=headers)
-        p(f"\r[Identifier] Created {title} => https://archive.org/download/{identifier}")
-        return r
+        if r.status_code != 200:
+            raise Exception(f"failed to create {identifier}", r.status_code, r.content)
+        p(f"\r[Identifier] Created {org_title} => https://archive.org/download/{identifier}")
 
     def metadata(self, identifier: str, op: str, k: str, v: str):
         url = f"https://archive.org/metadata/{identifier}"
@@ -200,9 +209,10 @@ class IA_Broker(object):
         }
         if op != "remove":
             data["-patch"][0]["value"] = v
-        p(f"[Metadata] <{identifier}> {k}: {v}", end="")
+        p(f"[Metadata] Pending {identifier} {op} {k}: {v}", end="")
         data["-patch"] = jd(data["-patch"])
         r = requests.post(url, data=data)
-        p(f"\r[Metadata] <{identifier}> {op} {k}: {v}")
-        return r
+        if r.status_code != 200:
+            raise Exception(f"failed metadata {identifier} {op} {k}: {v}", r.status_code, r.content)
+        p(f"\r[Metadata] Done {identifier} {op} {k}: {v}")
 

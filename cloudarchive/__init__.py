@@ -1,4 +1,4 @@
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 __keywords__ = ["internetarchive cloud archive storage archive.org"]
 
 
@@ -12,3 +12,4 @@ if not __version__.endswith(".0"):
 
 from .agent import *
 from .broker import *
+from .manager import *
