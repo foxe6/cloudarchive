@@ -171,7 +171,7 @@ class IA_Broker(object):
 
     def new_identifier(self, identifier: str, title: str = None, description: str = None):
         p(f"[Identifier] Creating new {identifier}", end="")
-        thumbnail_path = text2png.TextToPng("C:\\Windows\\Fonts\\msgothic.ttc", 64).create(title or identifier)
+        thumbnail_path = text2png.TextToPng(64).create(title or identifier)
         remote_filename = os.path.basename(thumbnail_path)
         if description is None:
             description = identifier
