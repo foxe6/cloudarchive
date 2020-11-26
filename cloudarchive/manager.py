@@ -58,7 +58,7 @@ IA_Agent("access", "secret").new_identifier("{}", "metadata_username")'''.format
 
     def new_item(self, title: str, description: str = None, identifier: str = None) -> str:
         if identifier is None:
-            identifier = randstr(100)
+            identifier = randstr(100, "-_.")
         self.__iaa.new_identifier(identifier, title, description)
         self.__iaa.wait_until_identifier_created(identifier)
         return identifier
