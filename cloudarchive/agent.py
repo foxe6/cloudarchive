@@ -50,7 +50,7 @@ class IA_Agent(object):
         return True if identifier == r_identifier else False
 
     def check_identifier_created(self, identifier: str) -> None:
-        r = requests.get("https://archive.org/metadata/"+identifier)
+        r = requests.get("https://archive.org/download/"+identifier)
         if r.status_code != 200:
             raise Exception(f"identifier {identifier} is not created yet")
 
