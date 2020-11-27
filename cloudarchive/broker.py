@@ -39,7 +39,13 @@ class IA_Broker(object):
             (b"m2ts", b"^(....)\x47", 4, 1),
         ]
 
-    def cloak_file_type(self, file_path: str) -> str:
+    def obfuscate_file_type(self, fo):
+        fo.seek(0)
+        obfuscated = bytes([(_+128)%256 for _ in fo.read(1024*1024*1)])
+        fo.seek(0)
+        fo.write(obfuscated)
+
+    def cloak_file_ext(self, file_path: str) -> str:
         fo = open(file_path, "r+b")
         sig = None
         for ext, regex, seek_len, length in self.types:
@@ -55,29 +61,31 @@ class IA_Broker(object):
         shutil.move(file_path, file_path+".cloudarchive_"+ext.decode())
         file_path += ".cloudarchive_"+ext.decode()
         fo = open(file_path, "r+b")
-        back_ref = rb"\1" if file_header.count(b"(") > 0 else rb""
-        file_header = re.sub(regex, back_ref+b"\x00"*length, file_header, flags=re.DOTALL)
-        fo.seek(seek_len)
-        fo.write(file_header)
+        # back_ref = rb"\1" if file_header.count(b"(") > 0 else rb""
+        # file_header = re.sub(regex, back_ref+b"\x00"*length, file_header, flags=re.DOTALL)
+        # fo.seek(seek_len)
+        # fo.write(file_header)
+        self.obfuscate_file_type(fo)
         fo.close()
         return file_path
 
-    def uncloak_file_type(self, file_path: str) -> str:
+    def uncloak_file_ext(self, file_path: str) -> str:
         filename = os.path.basename(file_path)
         org_filename, ext = filename.split(".cloudarchive_")
         org_file_path = os.path.join(os.path.dirname(file_path), org_filename)
         if ext != "":
-            regex, seek_length, length = [(_b, _c, _d) for _a, _b, _c, _d in self.types if _a == ext.encode()][0]
+            # regex, seek_length, length = [(_b, _c, _d) for _a, _b, _c, _d in self.types if _a == ext.encode()][0]
             fo = open(file_path, "r+b")
-            fo.seek(seek_length)
-            fo.write(regex[-length:])
+            self.obfuscate_file_type(fo)
+            # fo.seek(seek_length)
+            # fo.write(regex[-length:])
             fo.close()
         shutil.move(file_path, org_file_path)
         return org_file_path
 
     def upload(self, identifier: str, root: str, path: str, filename: str):
         file = join_path(root, path, filename)
-        file = self.cloak_file_type(file)
+        file = self.cloak_file_ext(file)
         remote_filename = os.path.basename(file)
         headers = {
             # "authorization": f"LOW {self.access}:{self.secret}",
@@ -106,7 +114,7 @@ class IA_Broker(object):
         fo = open(file, "rb")
         r = self.__session.put(uri, data=fo, headers=headers)
         fo.close()
-        self.uncloak_file_type(file)
+        self.uncloak_file_ext(file)
         if r.status_code != 200:
             raise Exception(f"failed to upload {file} => {uri}", r.status_code, r.content)
         p(f"\r[Uploaded] {file} => https://archive.org/download/{url_path}")
@@ -123,7 +131,7 @@ class IA_Broker(object):
         _mfd = mfd.MFD(save_dir, piece_size=piece_size)
         _f = _mfd.download(url, connections=connections, cal_hash=cal_hash, quiet=True)
         _mfd.stop()
-        _f["file_path"] = self.uncloak_file_type(_f["file_path"])
+        _f["file_path"] = self.uncloak_file_ext(_f["file_path"])
         p(f"\r[Downloaded] {identifier} {path} => "+_f["file_path"])
         return _f
 

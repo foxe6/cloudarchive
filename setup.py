@@ -18,7 +18,7 @@ open("README.md", "wb").write(readme.encode("utf-8"))
 description = re.search(r"<i>(.*?)</i>", readme)[1]
 setup(
     name="cloudarchive",
-    version="0.10.0",
+    version="0.11.0",
     keywords=["internetarchive cloud archive storage archive.org"],
     packages=find_packages(),
     package_data = {

@@ -2,7 +2,7 @@ from .agent import *
 from omnitools import randstr
 
 
-__ALL__ = ["IA_MGR"]
+__ALL__ = ["IA_Manager"]
 
 
 class IA_Manager(object):
