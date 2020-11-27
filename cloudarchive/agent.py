@@ -5,23 +5,25 @@ import requests
 import re
 import os
 import time
+import traceback
 
 
 __ALL__ = ["IA_Agent"]
 
 
 class IA_Agent(object):
-    def __init__(self, access: str = None, secret: str = None) -> None:
-        self.iaa_upload = lambda identifier, root, path: IA_Agent(access, secret).upload(identifier, root, path)
-        self.iab_upload = lambda identifier, root, path, file: IA_Broker(access, secret, identifier).upload(root, path, file)
-        self.iab_new_identifier = lambda identifier, title, description: IA_Broker(access, secret).new_identifier(identifier, title, description)
-        self.iab_delete = lambda identifier, file_name: IA_Broker(access, secret).delete(identifier, file_name)
-        self.iab_rename = lambda identifier, old_item, new_item: IA_Broker(access, secret).rename(identifier, old_item, new_item)
-        self.iab_metadata = lambda identifier, op, k, v: IA_Broker(access, secret).metadata(identifier, op, k, v)
+    def __init__(self, session: requests.Session = None) -> None:
+        # self.iaa_upload = lambda identifier, root, path: IA_Agent(access, secret).upload(identifier, root, path)
+        # self.iab_upload = lambda identifier, root, path, file: IA_Broker(access, secret, identifier).upload(root, path, file)
+        # self.iab_new_identifier = lambda identifier, title, description: IA_Broker(access, secret).new_identifier(identifier, title, description)
+        # self.iab_delete = lambda identifier, file_name: IA_Broker(access, secret).delete(identifier, file_name)
+        # self.iab_rename = lambda identifier, old_item, new_item: IA_Broker(access, secret).rename(identifier, old_item, new_item)
+        # self.iab_metadata = lambda identifier, op, k, v: IA_Broker(access, secret).metadata(identifier, op, k, v)
+        self.__session = session
 
     def get_identifier_metadata(self, identifier: str) -> dict:
         metadata = f"https://archive.org/metadata/{identifier}"
-        metadata = requests.get(metadata).json()
+        metadata = self.__session.get(metadata).json()
         return metadata
 
     def find_matching_files(self, files: list, path: str) -> list:
@@ -42,7 +44,7 @@ class IA_Agent(object):
         return files
 
     def check_identifier_available(self, identifier: str) -> bool:
-        r_identifier = requests.post("https://archive.org/upload/app/upload_api.php", {
+        r_identifier = self.__session.post("https://archive.org/upload/app/upload_api.php", {
             "name": "identifierAvailable",
             "identifier": identifier,
             "findUnique": True
@@ -50,7 +52,7 @@ class IA_Agent(object):
         return True if identifier == r_identifier else False
 
     def check_identifier_created(self, identifier: str) -> None:
-        r = requests.get("https://archive.org/download/"+identifier)
+        r = self.__session.get("https://archive.org/download/"+identifier)
         if r.status_code != 200:
             raise Exception(f"identifier {identifier} is not created yet")
 
@@ -73,7 +75,10 @@ class IA_Agent(object):
         if os.path.isdir(join_path(root, path)):
             for file_dir, _, files in os.walk(join_path(root, path)):
                 for file in files:
-                    self.iaa_upload(
+                    if file_size(join_path(file_dir, file)) == 0:
+                        p("[Upload] [Warning] File {} is skipped due to 0 file size".format(join_path(file_dir, file)))
+                        continue
+                    IA_Agent(self.__session).upload(
                         identifier,
                         root,
                         join_path(file_dir.replace(root, "")[1:], file)
@@ -84,11 +89,11 @@ class IA_Agent(object):
                 paths = path.split(os.path.sep)
                 file = paths[-1]
                 path = os.path.sep.join(paths[:-1])
-                self.iab_upload(identifier, root, path, file)
-            except Exception as e:
+                IA_Broker(self.__session).upload(identifier, root, path, file)
+            except:
                 raise Exception(
                     f"failed to upload {root} > {path} > {file} to {identifier}",
-                    e
+                    traceback.format_exc()
                 )
 
     def download(self, save_dir: str, identifier: str, path: str,
@@ -110,21 +115,21 @@ class IA_Agent(object):
                         p(f"[Verified]", hashes["file_path"], hashes["sha1"])
                         break
                     raise Exception(f"failed to download "+file["name"]+" or verify "+hashes["file_path"])
-        except Exception as e:
+        except:
             raise Exception(
                 f"failed to download {identifier} > {path} to {save_dir}",
-                e
+                traceback.format_exc()
             )
 
     def new_identifier(self, identifier: str, title: str = None, description: str = None):
         if not self.check_identifier_available(identifier):
             raise Exception(f"identifier {identifier} already exists")
         try:
-            self.iab_new_identifier(identifier, title, description)
-        except Exception as e:
+            IA_Broker(self.__session).new_identifier(identifier, title, description)
+        except:
             raise Exception(
                 f"failed to create new identifier {identifier}",
-                e
+                traceback.format_exc()
             )
 
     def rename(self, identifier: str, old_path: str, new_path: str):
@@ -145,11 +150,11 @@ class IA_Agent(object):
         try:
             for old_file in old_files:
                 new_file = old_file["name"].replace(old_path, new_path, 1)
-                self.iab_rename(identifier, old_file["name"], new_file)
-        except Exception as e:
+                IA_Broker(self.__session).rename(identifier, old_file["name"], new_file)
+        except:
             raise Exception(
                 f"failed to rename {identifier} {old_path} to {new_path}",
-                e
+                traceback.format_exc()
             )
 
     def delete(self, identifier: str, path: str):
@@ -157,11 +162,11 @@ class IA_Agent(object):
         files = self.find_matching_files(self.get_identifier_metadata(identifier)["files"], path)
         try:
             for file in files:
-                self.iab_delete(identifier, file["name"])
-        except Exception as e:
+                IA_Broker(self.__session).delete(identifier, file["name"])
+        except:
             raise Exception(
                 f"failed to delete {identifier} {path}",
-                e
+                traceback.format_exc()
             )
 
     def metadata(self, identifier: str, k: str = None, v: str = None):
@@ -180,11 +185,11 @@ class IA_Agent(object):
                 p(f"failed to modify metadata <{identifier}> same k v {k}: {v}")
                 return
         try:
-            self.iab_metadata(identifier, op, k, v)
-        except Exception as e:
+            IA_Broker(self.__session).metadata(identifier, op, k, v)
+        except:
             raise Exception(
                 f"failed to fetch/modify metadata {identifier} {k} {v}",
-                e
+                traceback.format_exc()
             )
 
     def delete_identifier(self, identifier: str):
