@@ -112,7 +112,12 @@ class IA_Broker(object):
         uri = url+urllib.parse.quote(url_path, safe="")
         p(f"[Uploading] {file} => {uri}", end="")
         fo = open(file, "rb")
-        r = self.__session.put(uri, data=fo, headers=headers)
+        try:
+            r = self.__session.put(uri, data=fo, headers=headers)
+        except requests.exceptions.RequestException as e:
+            self.uncloak_file_ext(file)
+            fo.close()
+            raise e
         fo.close()
         self.uncloak_file_ext(file)
         if r.status_code != 200:
