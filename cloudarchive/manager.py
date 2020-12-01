@@ -80,39 +80,39 @@ IA_Agent("access", "secret").new_identifier("{}", "metadata_username")'''.format
         self.__iaa.wait_until_identifier_created(identifier)
         return identifier
 
+    def _check_op(self, identifier: str) -> None:
+        if identifier.split("/")[0] == self.email_prefix:
+            raise Exception("failed to fetch/modify because {} is a metadata item".format(identifier))
+
     def delete_item(self, identifier: str):
+        self._check_op(identifier)
         self.__iaa.metadata(identifier, "collection", "test_collection")
 
     def get_item_content(self, identifier: str, path: str) -> tuple:
-        if identifier == self.email_prefix:
-            raise Exception("failed to fetch/modify because {} is a metadata item".format(identifier))
+        self._check_op(identifier)
         return self.__iaa.list_content(identifier, path)
 
-    def upload(self, identifier: str, root: str, path: str, overwrite: bool = True) -> None:
-        if identifier == self.email_prefix:
-            raise Exception("failed to fetch/modify because {} is a metadata item".format(identifier))
-        self.__iaa.upload(identifier, root, path, overwrite)
+    def upload(self, identifier: str, root: str, path: str,
+               overwrite: bool = True, replace_same_size: bool = False) -> None:
+        self._check_op(identifier)
+        self.__iaa.upload(identifier, root, path, overwrite, replace_same_size)
 
     def download(self, save_dir: str, identifier: str, path: str,
                  piece_size: int = 1024*1024*(2**4), connections: int = 2**3,
                  cal_hash: bool = False) -> None:
-        if identifier == self.email_prefix:
-            raise Exception("failed to fetch/modify because {} is a metadata item".format(identifier))
+        self._check_op(identifier)
         self.__iaa.download(save_dir, identifier, path, piece_size, connections, cal_hash)
 
     def rename(self, identifier: str, old_path: str, new_path: str) -> None:
-        if identifier == self.email_prefix:
-            raise Exception("failed to fetch/modify because {} is a metadata item".format(identifier))
+        self._check_op(identifier)
         self.__iaa.rename(identifier, old_path, new_path)
 
     def delete(self, identifier: str, path: str) -> None:
-        if identifier == self.email_prefix:
-            raise Exception("failed to fetch/modify because {} is a metadata item".format(identifier))
+        self._check_op(identifier)
         self.__iaa.delete(identifier, path)
 
     def metadata(self, identifier: str, k: str = None, v: str = None) -> None:
-        if identifier == self.email_prefix:
-            raise Exception("failed to fetch/modify because {} is a metadata item".format(identifier))
+        self._check_op(identifier)
         self.__iaa.metadata(identifier, k, v)
 
 

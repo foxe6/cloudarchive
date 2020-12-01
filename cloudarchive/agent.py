@@ -26,20 +26,31 @@ class IA_Agent(object):
         metadata = self.__session.get(metadata).json()
         return metadata
 
-    def find_matching_files(self, files: list, path: str) -> list:
+    def find_matching_files(self, files: list, path) -> list:
+        # if path.startswith("^") and path.endswith("$"):
+        #     path = re.compile(path)
         is_file = False
-        if len([file for file in files if file["name"] == path]) == 1:
-            is_file = True
-        else:
-            if path != "":
-                path = (path+"/").replace("//", "/")
+        if not isinstance(path, re.Pattern):
+            if len([file for file in files if file["name"] == path]) == 1:
+                is_file = True
+            else:
+                if path != "":
+                    path = (path+"/").replace("//", "/")
         files = [
             file for file in files if
             (
-                (file["name"] == path and is_file) or
-                (file["name"].startswith(path) and not is_file)
+                (
+                    path.search(file["name"]) is not None
+                ) if isinstance(path, re.Pattern) else
+                (
+                    (file["name"] == path and is_file) or
+                    (file["name"].startswith(path) and not is_file)
+                )
             ) and
-            re.search(r"(_(files|meta)\.xml|_(archive\.torrent|meta\.sqlite))$", file["name"]) is None
+            re.search(
+                r"(_(files|meta)\.xml|_(archive\.torrent|meta\.sqlite))$",
+                file["name"]
+            ) is None
         ]
         return files
 
@@ -65,37 +76,60 @@ class IA_Agent(object):
                 time.sleep(1)
         func()
 
-    def list_content(self, identifier: str, path: str) -> tuple:
+    def list_content(self, identifier: str, path) -> tuple:
         files = self.find_matching_files(self.get_identifier_metadata(identifier)["files"], path)
         cascade = create_cascade(identifier, create_tree(identifier, files, "name", "/"))
-        return (cascade, format_cascade(cascade))
+        return (files, format_cascade(cascade))
 
-    def upload(self, identifier: str, root: str, path: str, overwrite: bool = True, exist_files: list = None, check_identifier_created: bool = True) -> None:
+    def upload(self, identifier: str, root: str, path: str,
+               overwrite: bool = True, replace_same_size: bool = False, exist_files: list = None,
+               check_identifier_created: bool = True) -> None:
+        _identifier = identifier.split("/")[0]
         if check_identifier_created:
-            self.check_identifier_created(identifier)
+            self.check_identifier_created(_identifier)
         if exist_files is None:
-            exist_files = self.get_identifier_metadata(identifier)["files"]
-        if os.path.isdir(join_path(root, path)):
-            for file_dir, _, files in os.walk(join_path(root, path)):
+            exist_files = self.get_identifier_metadata(_identifier)["files"]
+            if identifier != _identifier:
+                exist_files = self.find_matching_files(exist_files, identifier.replace(_identifier, "")[1:])
+        is_pattern = path.startswith("^") and path.endswith("$")
+        walk_path = root if is_pattern else join_path(root, path)
+        path_pattern = re.compile(path) if is_pattern else None
+        if os.path.isdir(walk_path):
+            for file_dir, _, files in os.walk(walk_path):
                 for file in files:
-                    if file_size(join_path(file_dir, file)) == 0:
-                        p("[Upload] [Warning] File {} is skipped due to 0 file size".format(join_path(file_dir, file)))
+                    _path = join_path(file_dir.replace(root, "")[1:], file)
+                    if is_pattern and path_pattern.search(_path) is None:
+                        p("[Upload] [Warning] File {} is skipped due to mismatched regex".format(join_path(root, _path)))
                         continue
                     IA_Agent(self.__session).upload(
                         identifier,
                         root,
-                        join_path(file_dir.replace(root, "")[1:], file),
+                        _path,
                         overwrite,
+                        replace_same_size,
                         exist_files,
                         False
                     )
         else:
             file = ""
             try:
-                paths = path.split(os.path.sep)
-                file = paths[-1]
-                path = os.path.sep.join(paths[:-1])
-                IA_Broker(self.__session).upload(identifier, root, path, file, overwrite, exist_files)
+                fs = file_size(join_path(root, path))
+                if fs == 0:
+                    p("[Upload] [Warning] File {} is skipped due to 0 file size".format(join_path(root, path)))
+                    return
+                def check_overwrite(_path):
+                    matches = self.find_matching_files(exist_files, _path)
+                    if len(matches) != 1:
+                        return True
+                    return overwrite
+                def check_replace_same_size(_path):
+                    matches = self.find_matching_files(exist_files, _path)
+                    if len(matches) != 1:
+                        return True
+                    return replace_same_size and int(matches[0]["size"]) == fs
+                IA_Broker(self.__session).upload(
+                    identifier, root, path, check_overwrite, check_replace_same_size
+                )
             except:
                 raise Exception(
                     f"failed to upload {root} > {path} > {file} to {identifier}",

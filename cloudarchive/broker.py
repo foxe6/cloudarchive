@@ -25,25 +25,49 @@ class IA_Broker(object):
     def __init__(self, session: requests.Session = None) -> None:
         self.__session = session
         self.types = [
-            (b"7z", b"^\x37\x7a\xbc\xaf", 0, 4),
-            (b"rar", b"^\x52\x61\x72\x21", 0, 4),
-            (b"zip", b"^\x50\x4b\x03\x04", 0, 4),
-            (b"mp4", b"^(....)\x66\x74\x79\x70", 4, 4),
-            (b"mkv", b"^\x1a\x45\xdf\xa3", 0, 4),
-            (b"avi", b"^\x52\x49\x46\x46", 0, 4),
-            (b"wmv", b"^\x30\x26\xb2\x75\x8e\x66\xcf\x11\xa6\xd9\x00\xaa\x00\x62\xce\x6c", 0, 16),
-            (b"mpg", b"^\x00\x00\x01\xba", 0, 4),
-            (b"mpeg", b"^\x00\x00\x01\xba", 0, 4),
-            (b"ogm", b"^\x4f\x67\x67\x53", 0, 4),
-            (b"flv", b"^\x46\x4c\x56", 0, 3),
-            (b"m2ts", b"^(....)\x47", 4, 1),
+            ("7z", b"^\x37\x7a\xbc\xaf", 0, 4),
+            ("rar", b"^\x52\x61\x72\x21", 0, 4),
+            ("zip", b"^\x50\x4b\x03\x04", 0, 4),
+            ("mp4", b"^(....)\x66\x74\x79\x70", 4, 4),
+            ("mkv", b"^\x1a\x45\xdf\xa3", 0, 4),
+            ("avi", b"^\x52\x49\x46\x46", 0, 4),
+            ("wmv", b"^\x30\x26\xb2\x75\x8e\x66\xcf\x11\xa6\xd9\x00\xaa\x00\x62\xce\x6c", 0, 16),
+            ("mpg", b"^\x00\x00\x01\xba", 0, 4),
+            ("mpeg", b"^\x00\x00\x01\xba", 0, 4),
+            ("ogm", b"^\x4f\x67\x67\x53", 0, 4),
+            ("flv", b"^\x46\x4c\x56", 0, 3),
+            ("m2ts", b"^(....)\x47", 4, 1),
+            ("rmvb", b"^\x2e\x52\x4d\x46", 0, 4),
+        ]
+        self.other_types = [
+            "swf",
+            "mov",
+            "asf",
+            "sub",
+            "idx",
+            "rm",
+            "png",
+            "jpg",
+            "jpeg",
+            "bmp",
+            "gif",
+            "tif",
+            "svg",
+            "mka",
+            "mp3",
+            "flac",
+            "aac",
+            "m3u",
+            "m3u8",
         ]
 
-    def obfuscate_file_type(self, fo):
+    def obfuscate_file_type(self, file_path: str) -> None:
+        fo = open(file_path, "r+b")
         fo.seek(0)
         obfuscated = bytes([(_+128)%256 for _ in fo.read(1024*1024*1)])
         fo.seek(0)
         fo.write(obfuscated)
+        fo.close()
 
     def cloak_file_ext(self, file_path: str) -> str:
         fo = open(file_path, "r+b")
@@ -56,17 +80,13 @@ class IA_Broker(object):
                 break
         fo.close()
         if sig is None:
-            shutil.move(file_path, file_path+".cloudarchive_")
-            return file_path+".cloudarchive_"
-        shutil.move(file_path, file_path+".cloudarchive_"+ext.decode())
-        file_path += ".cloudarchive_"+ext.decode()
-        fo = open(file_path, "r+b")
-        # back_ref = rb"\1" if file_header.count(b"(") > 0 else rb""
-        # file_header = re.sub(regex, back_ref+b"\x00"*length, file_header, flags=re.DOTALL)
-        # fo.seek(seek_len)
-        # fo.write(file_header)
-        self.obfuscate_file_type(fo)
-        fo.close()
+            ext = os.path.basename(file_path).split(".")[-1]
+            if ext not in self.other_types:
+                shutil.move(file_path, file_path+".cloudarchive_")
+                return file_path+".cloudarchive_"
+        shutil.move(file_path, file_path+".cloudarchive_"+ext)
+        file_path += ".cloudarchive_"+ext
+        self.obfuscate_file_type(file_path)
         return file_path
 
     def uncloak_file_ext(self, file_path: str) -> str:
@@ -74,25 +94,19 @@ class IA_Broker(object):
         org_filename, ext = filename.split(".cloudarchive_")
         org_file_path = os.path.join(os.path.dirname(file_path), org_filename)
         if ext != "":
-            # regex, seek_length, length = [(_b, _c, _d) for _a, _b, _c, _d in self.types if _a == ext.encode()][0]
-            fo = open(file_path, "r+b")
-            self.obfuscate_file_type(fo)
-            # fo.seek(seek_length)
-            # fo.write(regex[-length:])
-            fo.close()
+            self.obfuscate_file_type(file_path)
         shutil.move(file_path, org_file_path)
         return org_file_path
 
-    def upload(self, identifier: str, root: str, path: str, filename: str, overwrite: bool = True, exist_files: list = None):
-        if not overwrite and exist_files is None:
-            raise Exception('''[Error] exist_files must be provided. try to use:\nIA_Agent().get_identifier_metadata("some_identifier")["files"]''')
-        file = join_path(root, path, filename)
+    def upload(self, identifier: str, root: str, path: str, check_overwrite, check_replace_same_size):
+        path_prefix = identifier.split("/")[1:]
+        identifier = identifier.split("/")[0]
+        file = join_path(root, path)
         file = self.cloak_file_ext(file)
         remote_filename = os.path.basename(file)
-        _path = "/".join(file.replace(root, "").split(os.path.sep))[1:]
-        from . import agent
-        if agent.IA_Agent().find_matching_files(exist_files, _path) and not overwrite:
-            p("[Upload] [Warning] File {} is skipped due to existing remote file".format(join_path(root, path, filename)))
+        _path = "/".join(path_prefix+file.replace(root, "")[1:].split(os.path.sep))
+        if not check_overwrite(_path) and not check_replace_same_size(_path):
+            p("[Upload] [Warning] File {} is skipped due to existing remote file".format(join_path(root, path)))
             self.uncloak_file_ext(file)
             return
         fs = str(file_size(file))
@@ -117,13 +131,15 @@ class IA_Broker(object):
             "X-Requested-With": "XMLHttpRequest"
         }
         url = f"https://s3.us.archive.org/"
-        url_path = identifier+"/"+path.replace("\\", "/")+"/"+remote_filename
+        # url_path = identifier+"/"+path.replace("\\", "/")+"/"+remote_filename
+        url_path = identifier+"/"+_path
         url_path = url_path.replace("//", "/")
         uri = url+urllib.parse.quote(url_path, safe="")
         p(f"[Uploading] {file} => {uri}", end="")
         fo = open(file, "rb")
         while True:
             try:
+                fo.seek(0)
                 r = self.__session.put(uri, data=fo, headers=headers)
                 break
             except requests.exceptions.RequestException as ex:
@@ -134,8 +150,8 @@ class IA_Broker(object):
                     print("\rretry in", i, end="", flush=True)
                 print(flush=True)
             except KeyboardInterrupt as e:
-                self.uncloak_file_ext(file)
                 fo.close()
+                self.uncloak_file_ext(file)
                 raise e
         fo.close()
         self.uncloak_file_ext(file)
