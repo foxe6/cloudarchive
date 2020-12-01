@@ -70,8 +70,11 @@ class IA_Agent(object):
         cascade = create_cascade(identifier, create_tree(identifier, files, "name", "/"))
         return (cascade, format_cascade(cascade))
 
-    def upload(self, identifier: str, root: str, path: str) -> None:
-        self.check_identifier_created(identifier)
+    def upload(self, identifier: str, root: str, path: str, overwrite: bool = True, exist_files: list = None, check_identifier_created: bool = True) -> None:
+        if check_identifier_created:
+            self.check_identifier_created(identifier)
+        if exist_files is None:
+            exist_files = self.get_identifier_metadata(identifier)["files"]
         if os.path.isdir(join_path(root, path)):
             for file_dir, _, files in os.walk(join_path(root, path)):
                 for file in files:
@@ -81,7 +84,10 @@ class IA_Agent(object):
                     IA_Agent(self.__session).upload(
                         identifier,
                         root,
-                        join_path(file_dir.replace(root, "")[1:], file)
+                        join_path(file_dir.replace(root, "")[1:], file),
+                        overwrite,
+                        exist_files,
+                        False
                     )
         else:
             file = ""
@@ -89,7 +95,7 @@ class IA_Agent(object):
                 paths = path.split(os.path.sep)
                 file = paths[-1]
                 path = os.path.sep.join(paths[:-1])
-                IA_Broker(self.__session).upload(identifier, root, path, file)
+                IA_Broker(self.__session).upload(identifier, root, path, file, overwrite, exist_files)
             except:
                 raise Exception(
                     f"failed to upload {root} > {path} > {file} to {identifier}",

@@ -55,9 +55,9 @@ IA_Agent("access", "secret").new_identifier("{}", "metadata_username")'''.format
             "authorization": "LOW {}:{}".format(_a, _s),
             "Accept": "*/*",
             "Accept-Encoding": "gzip, deflate, br",
-            "Accept-Language": "en-US,en;q=0.9,zh-TW;q=0.8,zh;q=0.7,ru;q=0.6"
+            "Accept-Language": "en-US,en;q=0.9"
         })
-        s.get("https://archive.org/upload/")
+        # s.get("https://archive.org/upload/")
         return s
 
     def get_identifier_by_title(self, regex: str) -> str:
@@ -88,10 +88,10 @@ IA_Agent("access", "secret").new_identifier("{}", "metadata_username")'''.format
             raise Exception("failed to fetch/modify because {} is a metadata item".format(identifier))
         return self.__iaa.list_content(identifier, path)
 
-    def upload(self, identifier: str, root: str, path: str) -> None:
+    def upload(self, identifier: str, root: str, path: str, overwrite: bool = True) -> None:
         if identifier == self.email_prefix:
             raise Exception("failed to fetch/modify because {} is a metadata item".format(identifier))
-        self.__iaa.upload(identifier, root, path)
+        self.__iaa.upload(identifier, root, path, overwrite)
 
     def download(self, save_dir: str, identifier: str, path: str,
                  piece_size: int = 1024*1024*(2**4), connections: int = 2**3,

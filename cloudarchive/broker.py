@@ -83,28 +83,38 @@ class IA_Broker(object):
         shutil.move(file_path, org_file_path)
         return org_file_path
 
-    def upload(self, identifier: str, root: str, path: str, filename: str):
+    def upload(self, identifier: str, root: str, path: str, filename: str, overwrite: bool = True, exist_files: list = None):
+        if not overwrite and exist_files is None:
+            raise Exception('''[Error] exist_files must be provided. try to use:\nIA_Agent().get_identifier_metadata("some_identifier")["files"]''')
         file = join_path(root, path, filename)
         file = self.cloak_file_ext(file)
         remote_filename = os.path.basename(file)
+        _path = "/".join(file.replace(root, "").split(os.path.sep))[1:]
+        from . import agent
+        if agent.IA_Agent().find_matching_files(exist_files, _path) and not overwrite:
+            p("[Upload] [Warning] File {} is skipped due to existing remote file".format(join_path(root, path, filename)))
+            self.uncloak_file_ext(file)
+            return
+        fs = str(file_size(file))
         headers = {
             # "authorization": f"LOW {self.access}:{self.secret}",
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "Content-Type": "multipart/form-data; charset=UTF-8",
-            # "Referer": f"https://archive.org/upload/?identifier={identifier}",
+            "Referer": f"https://archive.org/upload/?identifier={identifier}",
             # "User-Agent": USER_AGENT(self.access),
             "x-amz-acl": "bucket-owner-full-control",
             "x-amz-auto-make-bucket": "1",
             # "x-archive-interactive-priority": "1",
             "x-archive-queue-derive": "0",
-            "x-archive-size-hint": str(file_size(file)),
-            "X-File-Size": str(file_size(file)),
-            "Content-Length": str(file_size(file)),
+            "x-archive-size-hint": fs,
+            "X-File-Size": fs,
+            "Content-Length": fs,
             "X-File-Name": f"uri({remote_filename})",
             "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-site"
+            "Sec-Fetch-Site": "same-site",
+            "X-Requested-With": "XMLHttpRequest"
         }
         url = f"https://s3.us.archive.org/"
         url_path = identifier+"/"+path.replace("\\", "/")+"/"+remote_filename
@@ -112,16 +122,25 @@ class IA_Broker(object):
         uri = url+urllib.parse.quote(url_path, safe="")
         p(f"[Uploading] {file} => {uri}", end="")
         fo = open(file, "rb")
-        try:
-            r = self.__session.put(uri, data=fo, headers=headers)
-        except requests.exceptions.RequestException as e:
-            self.uncloak_file_ext(file)
-            fo.close()
-            raise e
+        while True:
+            try:
+                r = self.__session.put(uri, data=fo, headers=headers)
+                break
+            except requests.exceptions.RequestException as ex:
+                import time
+                print(ex)
+                for i in range(0, 10):
+                    time.sleep(1)
+                    print("\rretry in", i, end="", flush=True)
+                print(flush=True)
+            except KeyboardInterrupt as e:
+                self.uncloak_file_ext(file)
+                fo.close()
+                raise e
         fo.close()
         self.uncloak_file_ext(file)
         if r.status_code != 200:
-            raise Exception(f"failed to upload {file} => {uri}", r.status_code, r.content)
+            raise Exception(f"failed to upload {file} => {uri}", r.status_code, r.request.headers, r.content)
         p(f"\r[Uploaded] {file} => https://archive.org/download/{url_path}")
 
     def download(self, save_dir: str, identifier: str, path: str,
@@ -228,8 +247,8 @@ class IA_Broker(object):
             ],
             "-target": "metadata",
             "priority": -5,
-            "access": self.access,
-            "secret": self.secret
+            "access": self.__session.headers["authorization"][4:].split(":")[0],
+            "secret": self.__session.headers["authorization"][4:].split(":")[1]
         }
         if op != "remove":
             data["-patch"][0]["value"] = v
