@@ -98,14 +98,14 @@ class IA_Broker(object):
         shutil.move(file_path, org_file_path)
         return org_file_path
 
-    def upload(self, identifier: str, root: str, path: str, check_overwrite, check_replace_same_size):
+    def upload(self, identifier: str, root: str, path: str, check_overwrite, check_skip_same_size):
         path_prefix = identifier.split("/")[1:]
         identifier = identifier.split("/")[0]
         file = join_path(root, path)
         file = self.cloak_file_ext(file)
         remote_filename = os.path.basename(file)
         _path = "/".join(path_prefix+file.replace(root, "")[1:].split(os.path.sep))
-        if not check_overwrite(_path) and not check_replace_same_size(_path):
+        if not check_overwrite(_path) and check_skip_same_size(_path):
             p("[Upload] [Warning] File {} is skipped due to existing remote file".format(join_path(root, path)))
             self.uncloak_file_ext(file)
             return

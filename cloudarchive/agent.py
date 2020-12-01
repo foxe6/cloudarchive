@@ -82,7 +82,7 @@ class IA_Agent(object):
         return (files, format_cascade(cascade))
 
     def upload(self, identifier: str, root: str, path: str,
-               overwrite: bool = True, replace_same_size: bool = False, exist_files: list = None,
+               overwrite: bool = True, skip_same_size: bool = True, exist_files: list = None,
                check_identifier_created: bool = True) -> None:
         _identifier = identifier.split("/")[0]
         if check_identifier_created:
@@ -106,7 +106,7 @@ class IA_Agent(object):
                         root,
                         _path,
                         overwrite,
-                        replace_same_size,
+                        skip_same_size,
                         exist_files,
                         False
                     )
@@ -122,13 +122,13 @@ class IA_Agent(object):
                     if len(matches) != 1:
                         return True
                     return overwrite
-                def check_replace_same_size(_path):
+                def check_skip_same_size(_path):
                     matches = self.find_matching_files(exist_files, _path)
                     if len(matches) != 1:
                         return True
-                    return replace_same_size and int(matches[0]["size"]) == fs
+                    return skip_same_size and int(matches[0]["size"]) == fs
                 IA_Broker(self.__session).upload(
-                    identifier, root, path, check_overwrite, check_replace_same_size
+                    identifier, root, path, check_overwrite, check_skip_same_size
                 )
             except:
                 raise Exception(
