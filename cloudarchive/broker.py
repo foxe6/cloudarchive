@@ -81,7 +81,7 @@ class IA_Broker(object):
         fo.close()
         if sig is None:
             ext = os.path.basename(file_path).split(".")[-1]
-            if ext not in self.other_types:
+            if ext.lower() not in self.other_types:
                 shutil.move(file_path, file_path+".cloudarchive_")
                 return file_path+".cloudarchive_"
         shutil.move(file_path, file_path+".cloudarchive_"+ext)
@@ -213,7 +213,7 @@ class IA_Broker(object):
         thumbnail_path = text2png.TextToPng(64).create(title or identifier)
         remote_filename = os.path.basename(thumbnail_path)
         org_title = title
-        title = urllib.parse.quote(title) if description else identifier
+        title = urllib.parse.quote(title) if title else identifier
         description = urllib.parse.quote(description) if description else ""
         headers = {
             # "authorization": f"LOW {self.access}:{self.secret}",

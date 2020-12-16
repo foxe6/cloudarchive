@@ -93,9 +93,9 @@ IA_Agent("access", "secret").new_identifier("{}", "metadata_username")'''.format
         return self.__iaa.list_content(identifier, path)
 
     def upload(self, identifier: str, root: str, path: str,
-               overwrite: bool = True, replace_same_size: bool = False) -> None:
+               overwrite: bool = True, skip_same_size: bool = False) -> None:
         self._check_op(identifier)
-        self.__iaa.upload(identifier, root, path, overwrite, replace_same_size)
+        self.__iaa.upload(identifier, root, path, overwrite, skip_same_size)
 
     def download(self, save_dir: str, identifier: str, path: str,
                  piece_size: int = 1024*1024*(2**4), connections: int = 2**3,

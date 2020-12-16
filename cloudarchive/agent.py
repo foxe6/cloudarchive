@@ -101,6 +101,7 @@ class IA_Agent(object):
                     if is_pattern and path_pattern.search(_path) is None:
                         p("[Upload] [Warning] File {} is skipped due to mismatched regex".format(join_path(root, _path)))
                         continue
+                    input("next file?")
                     IA_Agent(self.__session).upload(
                         identifier,
                         root,
